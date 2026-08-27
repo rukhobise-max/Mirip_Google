@@ -14,11 +14,14 @@ export interface Translations {
   googleUserDefault: string;
   manageAccountAlert: string;
 
-  // Step 1: Email
-  accountRecoveryTitle: string;
-  accountRecoverySubtitle: string;
+  // Step 1: Email / Login
+  loginTitle: string;
+  loginSubtitle: string;
   emailOrPhoneLabel: string;
   forgotEmail: string;
+  guestModeText: string;
+  learnMoreGuestMode: string;
+  createAccount: string;
   next: string;
   enterEmailOrPhoneError: string;
   loginFailedError: string;
@@ -144,11 +147,14 @@ export const translations: Record<Language, Translations> = {
     googleUserDefault: 'Pengguna Google',
     manageAccountAlert: 'Fitur kelola akun Google Anda',
 
-    // Step 1: Email
-    accountRecoveryTitle: 'Pemulihan akun',
-    accountRecoverySubtitle: 'Memulihkan Akun Google Anda',
+    // Step 1: Email / Login
+    loginTitle: 'Login',
+    loginSubtitle: 'Gunakan Akun Google Anda',
     emailOrPhoneLabel: 'Email atau nomor telepon',
     forgotEmail: 'Lupa email?',
+    guestModeText: 'Bukan komputer Anda? Gunakan mode Tamu untuk login secara pribadi. ',
+    learnMoreGuestMode: 'Pelajari lebih lanjut cara menggunakan Mode tamu',
+    createAccount: 'Buat akun',
     next: 'Berikutnya',
     enterEmailOrPhoneError: 'Masukkan alamat email atau nomor telepon',
     loginFailedError: 'Gagal masuk menggunakan Google.',
@@ -274,11 +280,14 @@ export const translations: Record<Language, Translations> = {
     googleUserDefault: 'Google User',
     manageAccountAlert: 'Manage your Google Account feature',
 
-    // Step 1: Email
-    accountRecoveryTitle: 'Account recovery',
-    accountRecoverySubtitle: 'Recover your Google Account',
+    // Step 1: Email / Login
+    loginTitle: 'Sign in',
+    loginSubtitle: 'Use your Google Account',
     emailOrPhoneLabel: 'Email or phone',
     forgotEmail: 'Forgot email?',
+    guestModeText: 'Not your computer? Use Guest mode to sign in privately. ',
+    learnMoreGuestMode: 'Learn more about using Guest mode',
+    createAccount: 'Create account',
     next: 'Next',
     enterEmailOrPhoneError: 'Enter an email or phone number',
     loginFailedError: 'Failed to sign in with Google.',

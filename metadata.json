@@ -1,6 +1,6 @@
 {
   "name": "Account Recovery UI",
-  "description": "Sebuah antarmuka pemulihan akun generik dengan langkah input email dan reset kata sandi.",
+  "description": "Antarmuka login Akun Google resmi dengan alur autentikasi, pengaturan keamanan, dan multi-bahasa.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

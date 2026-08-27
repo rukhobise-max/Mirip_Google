@@ -794,8 +794,8 @@ export default function App() {
               <div className="px-6 pb-6 pt-2 sm:px-10 sm:pb-8 flex flex-col items-start">
                 {step === 'email' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.accountRecoveryTitle}</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">{t.accountRecoverySubtitle}</p>
+                    <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.loginTitle}</h1>
+                    <p className="text-[#1f1f1f] text-[16px] font-normal">{t.loginSubtitle}</p>
                   </>
                 )}
                 {step === 'password' && (
@@ -886,7 +886,7 @@ export default function App() {
         {/* Content/Form Section */}
         <div className="px-6 pb-10 flex flex-col flex-grow sm:px-10">
           {step === 'email' && (
-            <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-start">
+            <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-between">
               <div className="pt-2">
                 <TextInput
                   label={t.emailOrPhoneLabel}
@@ -900,15 +900,36 @@ export default function App() {
                   autoFocus
                   disabled={isLoading}
                 />
+
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    className="text-[#0b57d0] hover:underline font-medium text-[14px] transition text-left"
+                    disabled={isLoading}
+                  >
+                    {t.forgotEmail}
+                  </button>
+                </div>
+
+                <div className="mt-9 text-[14px] text-[#444746] leading-relaxed">
+                  <span>{t.guestModeText}</span>
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="text-[#0b57d0] font-medium hover:underline inline"
+                  >
+                    {t.learnMoreGuestMode}
+                  </a>
+                </div>
               </div>
 
               <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
                 <button
                   type="button"
-                  className="text-[#0b57d0] hover:bg-blue-50 px-3 py-2 -ml-3 rounded-full font-medium text-sm transition"
+                  className="text-[#0b57d0] hover:bg-blue-50/50 px-3 py-2 -ml-3 rounded-full font-medium text-[14px] transition"
                   disabled={isLoading}
                 >
-                  {t.forgotEmail}
+                  {t.createAccount}
                 </button>
                 <button
                   type="submit"
