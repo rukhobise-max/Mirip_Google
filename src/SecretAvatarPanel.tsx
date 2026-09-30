@@ -3,10 +3,8 @@ import type { Translations, Language } from './translations';
 
 export interface CustomAvatarConfig {
   enabled: boolean;
-  avatarType: 'icon' | 'letter' | 'photo';
   initial: string;
   bgColor: string;
-  iconColor: string;
   photoURL?: string;
 }
 
@@ -19,41 +17,10 @@ export const PRESET_AVATAR_COLORS = [
   { name: 'Google Teal', hex: '#007b83' },
   { name: 'Google Pink', hex: '#b80672' },
   { name: 'Forest Green', hex: '#0d652d' },
-  { name: 'Dark Gray (Resmi)', hex: '#444746' },
   { name: 'Midnight Dark', hex: '#202124' },
 ];
 
 const POPULAR_INITIALS = ['R', 'A', 'B', 'D', 'G', 'J', 'K', 'M', 'S', 'T'];
-
-export const GoogleDefaultAvatar: React.FC<{
-  size?: number;
-  className?: string;
-  color?: string;
-}> = ({
-  size = 20,
-  className = '',
-  color = '#444746',
-}) => {
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      className={`flex-shrink-0 select-none ${className}`}
-      style={{ width: `${size}px`, height: `${size}px` }}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Outer ring */}
-      <circle cx="24" cy="24" r="20" stroke={color} strokeWidth="3.5" fill="none" />
-      {/* Head */}
-      <circle cx="24" cy="17" r="6.8" fill={color} />
-      {/* Shoulders curved along the inner circle */}
-      <path
-        d="M10 38.2C13 30 18 27.5 24 27.5s11 2.5 14 10.7A20 20 0 0 1 10 38.2Z"
-        fill={color}
-      />
-    </svg>
-  );
-};
 
 interface SecretAvatarPanelProps {
   config: CustomAvatarConfig;
@@ -70,26 +37,11 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
   t,
   lang,
 }) => {
-  const [localConfig, setLocalConfig] = useState<CustomAvatarConfig>({
-    enabled: config.enabled ?? false,
-    avatarType: config.avatarType ?? 'icon',
-    initial: config.initial || 'R',
-    bgColor: config.bgColor || '#1a73e8',
-    iconColor: config.iconColor || '#444746',
-    photoURL: config.photoURL || '',
-  });
-
+  const [localConfig, setLocalConfig] = useState<CustomAvatarConfig>(config);
   const [showSavedToast, setShowSavedToast] = useState(false);
 
   useEffect(() => {
-    setLocalConfig({
-      enabled: config.enabled ?? false,
-      avatarType: config.avatarType ?? 'icon',
-      initial: config.initial || 'R',
-      bgColor: config.bgColor || '#1a73e8',
-      iconColor: config.iconColor || '#444746',
-      photoURL: config.photoURL || '',
-    });
+    setLocalConfig(config);
   }, [config]);
 
   const updateField = <K extends keyof CustomAvatarConfig>(field: K, val: CustomAvatarConfig[K]) => {
@@ -109,10 +61,8 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
   const handleReset = () => {
     const resetConfig: CustomAvatarConfig = {
       enabled: false,
-      avatarType: 'icon',
       initial: 'R',
       bgColor: '#1a73e8',
-      iconColor: '#444746',
       photoURL: '',
     };
     setLocalConfig(resetConfig);
@@ -123,42 +73,15 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
     }, 2500);
   };
 
-  const renderPreviewAvatar = (size: number) => {
-    if (localConfig.avatarType === 'photo' && localConfig.photoURL) {
-      return (
-        <img
-          src={localConfig.photoURL}
-          alt="Preview"
-          className="rounded-full object-cover select-none"
-          style={{ width: `${size}px`, height: `${size}px` }}
-        />
-      );
-    }
-
-    if (localConfig.avatarType === 'letter') {
-      const fontSize = Math.max(10, Math.round(size * 0.5));
-      return (
-        <div
-          className="rounded-full flex items-center justify-center font-medium text-white shadow-sm select-none"
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            backgroundColor: localConfig.bgColor || '#1a73e8',
-            fontSize: `${fontSize}px`,
-          }}
-        >
-          {(localConfig.initial || 'R').toUpperCase().slice(0, 2)}
-        </div>
-      );
-    }
-
-    // Default icon
-    return (
-      <GoogleDefaultAvatar
-        size={size}
-        color={localConfig.iconColor || '#444746'}
-      />
-    );
+  const applyQuickPreset = (letter: string, color: string) => {
+    const updated: CustomAvatarConfig = {
+      ...localConfig,
+      enabled: true,
+      initial: letter,
+      bgColor: color,
+    };
+    setLocalConfig(updated);
+    onChange(updated);
   };
 
   return (
@@ -180,7 +103,7 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
               </span>
             ) : (
               <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                {lang === 'id' ? 'Ikon Resmi Google Aktif' : 'Official Google Icon Active'}
+                {t.secretFeatureInactive}
               </span>
             )}
           </span>
@@ -200,79 +123,37 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
 
       <div className="mb-4">
         <h3 className="text-[17px] font-semibold text-[#1f1f1f] tracking-tight">
-          {lang === 'id' ? 'Pengaturan Avatar Foto Profil Akun' : 'Account Profile Avatar Settings'}
+          {t.secretFeatureTitle}
         </h3>
         <p className="text-[13px] text-[#444746] mt-0.5 leading-snug">
-          {lang === 'id' 
-            ? 'Pilih ikon akun Google resmi (seperti pada foto), inisial huruf berwarna, atau foto kustom.' 
-            : 'Choose between the official Google account icon (from photo), colored letter initials, or custom photo.'}
+          {t.secretFeatureDesc}
         </p>
-      </div>
-
-      {/* Format Selector Tabs */}
-      <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 rounded-xl mb-4">
-        <button
-          type="button"
-          onClick={() => {
-            updateField('avatarType', 'icon');
-            if (!localConfig.enabled) updateField('enabled', true);
-          }}
-          className={`py-2 px-1 text-[12px] font-medium rounded-lg transition text-center ${
-            localConfig.avatarType === 'icon'
-              ? 'bg-white text-[#1f1f1f] shadow-xs'
-              : 'text-[#444746] hover:text-[#1f1f1f]'
-          }`}
-        >
-          {lang === 'id' ? 'Ikon Resmi Foto' : 'Official Photo Icon'}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            updateField('avatarType', 'letter');
-            if (!localConfig.enabled) updateField('enabled', true);
-          }}
-          className={`py-2 px-1 text-[12px] font-medium rounded-lg transition text-center ${
-            localConfig.avatarType === 'letter'
-              ? 'bg-white text-[#1f1f1f] shadow-xs'
-              : 'text-[#444746] hover:text-[#1f1f1f]'
-          }`}
-        >
-          {lang === 'id' ? 'Inisial Huruf' : 'Letter Initial'}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            updateField('avatarType', 'photo');
-            if (!localConfig.enabled) updateField('enabled', true);
-          }}
-          className={`py-2 px-1 text-[12px] font-medium rounded-lg transition text-center ${
-            localConfig.avatarType === 'photo'
-              ? 'bg-white text-[#1f1f1f] shadow-xs'
-              : 'text-[#444746] hover:text-[#1f1f1f]'
-          }`}
-        >
-          {lang === 'id' ? 'Foto Kustom' : 'Custom Photo'}
-        </button>
       </div>
 
       {/* Live Preview Card */}
       <div className="bg-[#f8fafd] rounded-2xl p-4 border border-blue-50 mb-5">
         <div className="text-[12px] font-medium text-gray-500 mb-2 flex items-center justify-between">
           <span>{t.previewLabel}</span>
-          <span className="text-[11px] text-[#0b57d0] font-medium">
-            {localConfig.avatarType === 'icon' 
-              ? (lang === 'id' ? 'Ikon Profil Resmi' : 'Official Profile Icon')
-              : localConfig.avatarType === 'letter' 
-                ? (lang === 'id' ? 'Inisial Berwarna' : 'Colored Initial') 
-                : (lang === 'id' ? 'Foto URL' : 'Photo URL')}
+          <span className="text-[11px] text-[#0b57d0]">
+            {localConfig.enabled ? (lang === 'id' ? 'Aktif di seluruh halaman' : 'Active everywhere') : (lang === 'id' ? 'Mati (Mode default)' : 'Off (Default mode)')}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center justify-around gap-4 py-2">
           {/* Large 64px preview */}
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white shadow-2xs">
-              {renderPreviewAvatar(64)}
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center font-medium text-white shadow-sm transition-all duration-200 select-none overflow-hidden"
+              style={{
+                backgroundColor: localConfig.bgColor || '#1a73e8',
+                fontSize: '28px',
+              }}
+            >
+              {localConfig.photoURL ? (
+                <img src={localConfig.photoURL} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                (localConfig.initial || 'R').toUpperCase()
+              )}
             </div>
             <span className="text-[11px] text-gray-500 mt-1.5 font-normal">
               {lang === 'id' ? 'Profil (64px)' : 'Profile (64px)'}
@@ -281,198 +162,210 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
 
           {/* Medium 36px preview */}
           <div className="flex flex-col items-center">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-2xs">
-              {renderPreviewAvatar(36)}
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center font-medium text-white shadow-sm transition-all duration-200 select-none overflow-hidden"
+              style={{
+                backgroundColor: localConfig.bgColor || '#1a73e8',
+                fontSize: '17px',
+              }}
+            >
+              {localConfig.photoURL ? (
+                <img src={localConfig.photoURL} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                (localConfig.initial || 'R').toUpperCase()
+              )}
             </div>
             <span className="text-[11px] text-gray-500 mt-1.5 font-normal">
-              {lang === 'id' ? 'Tabel (32px)' : 'Table (32px)'}
+              {lang === 'id' ? 'Standar (36px)' : 'Standard (36px)'}
             </span>
           </div>
 
-          {/* Pill / Chip preview (20px) - EXACT to Image 2! */}
+          {/* Pill / Chip preview (20px) */}
           <div className="flex flex-col items-center">
-            <div className="border border-[#747775] bg-white rounded-full h-[32px] pl-[6px] pr-[14px] inline-flex items-center select-none shadow-2xs">
-              <div className="w-[20px] h-[20px] flex-shrink-0 flex items-center justify-center">
-                {renderPreviewAvatar(20)}
+            <div className="border border-[#747775]/60 bg-white rounded-full h-[28px] pr-2.5 pl-1.5 flex items-center gap-1.5 text-[12px] text-[#1f1f1f] font-medium shadow-2xs select-none">
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center font-medium text-white text-[10px] overflow-hidden"
+                style={{
+                  backgroundColor: localConfig.bgColor || '#1a73e8',
+                }}
+              >
+                {localConfig.photoURL ? (
+                  <img src={localConfig.photoURL} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  (localConfig.initial || 'R').toUpperCase()
+                )}
               </div>
-              <span className="ml-[10px] font-medium text-[14px] text-[#1f1f1f] leading-none tracking-normal truncate max-w-[130px]">
-                {email || 'rukho977@gmail.com'}
-              </span>
-              <svg viewBox="0 0 10 5" className="w-[10px] h-[5px] text-[#1f1f1f] fill-current flex-shrink-0 ml-[14px]">
-                <path d="M0 0l5 5 5-5z" />
-              </svg>
+              <span className="truncate max-w-[110px]">{email || 'user@gmail.com'}</span>
+              <svg fill="currentColor" viewBox="0 0 24 24" className="w-3.5 h-3.5 text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
             </div>
             <span className="text-[11px] text-gray-500 mt-1.5 font-normal">
-              {lang === 'id' ? 'Pill Akun (Persis Foto 2)' : 'Account Pill (Photo 2)'}
+              {lang === 'id' ? 'Pill Akun (20px)' : 'Account Pill (20px)'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Sub-controls based on Avatar Type */}
-      {localConfig.avatarType === 'icon' && (
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[13px] font-medium text-[#1f1f1f]">
-              {lang === 'id' ? 'Warna Ikon Profil' : 'Profile Icon Color'}
-            </label>
-            <span className="text-[12px] font-mono text-gray-500 uppercase">
-              {localConfig.iconColor}
-            </span>
-          </div>
+      {/* Control 1: Initial Letter */}
+      <div className="mb-4">
+        <label className="block text-[13px] font-medium text-[#1f1f1f] mb-1">
+          {t.initialLetterLabel}
+        </label>
+        <p className="text-[11px] text-gray-500 mb-2">
+          {t.initialLetterHint}
+        </p>
 
-          <div className="flex flex-wrap gap-2 mb-3">
-            {PRESET_AVATAR_COLORS.map((c) => {
-              const isSelected = localConfig.iconColor.toLowerCase() === c.hex.toLowerCase();
-              return (
-                <button
-                  key={c.hex}
-                  type="button"
-                  title={c.name}
-                  onClick={() => updateField('iconColor', c.hex)}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${
-                    isSelected ? 'ring-2 ring-offset-2 ring-[#0b57d0] scale-110' : 'hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: c.hex }}
-                >
-                  {isSelected && (
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-            <span className="text-[12px] text-gray-600 font-medium">
-              {t.customHexLabel}:
-            </span>
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="color"
-                value={localConfig.iconColor.startsWith('#') ? localConfig.iconColor : '#444746'}
-                onChange={(e) => updateField('iconColor', e.target.value)}
-                className="w-8 h-8 rounded border border-gray-300 cursor-pointer p-0.5"
-              />
-              <input
-                type="text"
-                value={localConfig.iconColor}
-                onChange={(e) => updateField('iconColor', e.target.value)}
-                placeholder="#444746"
-                className="w-28 px-2.5 py-1 text-[13px] font-mono text-[#1f1f1f] border border-gray-300 rounded focus:outline-none focus:border-[#0b57d0]"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {localConfig.avatarType === 'letter' && (
-        <>
-          <div className="mb-4">
-            <label className="block text-[13px] font-medium text-[#1f1f1f] mb-1">
-              {t.initialLetterLabel}
-            </label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                maxLength={3}
-                value={localConfig.initial}
-                onChange={(e) => updateField('initial', e.target.value)}
-                placeholder="R"
-                className="w-20 px-3 py-2 text-[16px] font-semibold text-center uppercase tracking-wider text-[#1f1f1f] border border-gray-300 rounded-lg focus:outline-none focus:border-[#0b57d0]"
-              />
-              <div className="flex flex-wrap gap-1 flex-1">
-                {POPULAR_INITIALS.map((letter) => (
-                  <button
-                    key={letter}
-                    type="button"
-                    onClick={() => updateField('initial', letter)}
-                    className={`w-7 h-7 text-[12px] font-medium rounded-md transition ${
-                      localConfig.initial.toUpperCase() === letter
-                        ? 'bg-[#0b57d0] text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {letter}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[13px] font-medium text-[#1f1f1f]">
-                {t.avatarColorLabel}
-              </label>
-              <span className="text-[12px] font-mono text-gray-500 uppercase">
-                {localConfig.bgColor}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {PRESET_AVATAR_COLORS.map((c) => {
-                const isSelected = localConfig.bgColor.toLowerCase() === c.hex.toLowerCase();
-                return (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    title={c.name}
-                    onClick={() => updateField('bgColor', c.hex)}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${
-                      isSelected ? 'ring-2 ring-offset-2 ring-[#0b57d0] scale-110' : 'hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                  >
-                    {isSelected && (
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-              <span className="text-[12px] text-gray-600 font-medium">
-                {t.customHexLabel}:
-              </span>
-              <div className="flex items-center gap-2 flex-1">
-                <input
-                  type="color"
-                  value={localConfig.bgColor.startsWith('#') ? localConfig.bgColor : '#1a73e8'}
-                  onChange={(e) => updateField('bgColor', e.target.value)}
-                  className="w-8 h-8 rounded border border-gray-300 cursor-pointer p-0.5"
-                />
-                <input
-                  type="text"
-                  value={localConfig.bgColor}
-                  onChange={(e) => updateField('bgColor', e.target.value)}
-                  placeholder="#1a73e8"
-                  className="w-28 px-2.5 py-1 text-[13px] font-mono text-[#1f1f1f] border border-gray-300 rounded focus:outline-none focus:border-[#0b57d0]"
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {localConfig.avatarType === 'photo' && (
-        <div className="mb-5">
-          <label className="block text-[12px] font-medium text-gray-700 mb-1">
-            {t.photoUrlOptionalLabel}
-          </label>
+        <div className="flex gap-2 items-center">
           <input
             type="text"
-            value={localConfig.photoURL || ''}
-            onChange={(e) => updateField('photoURL', e.target.value)}
-            placeholder={t.photoUrlPlaceholder}
-            className="w-full px-3 py-2 text-[13px] text-[#1f1f1f] border border-gray-300 rounded-lg focus:outline-none focus:border-[#0b57d0]"
+            maxLength={3}
+            value={localConfig.initial}
+            onChange={(e) => updateField('initial', e.target.value)}
+            placeholder="R"
+            className="w-20 px-3 py-2 text-[16px] font-semibold text-center uppercase tracking-wider text-[#1f1f1f] border border-gray-300 rounded-lg focus:outline-none focus:border-[#0b57d0] focus:ring-1 focus:ring-[#0b57d0]"
           />
+
+          {/* Quick Initial Letter Chips */}
+          <div className="flex flex-wrap gap-1 flex-1">
+            {POPULAR_INITIALS.map((letter) => (
+              <button
+                key={letter}
+                type="button"
+                onClick={() => updateField('initial', letter)}
+                className={`w-7 h-7 text-[12px] font-medium rounded-md transition ${
+                  localConfig.initial.toUpperCase() === letter
+                    ? 'bg-[#0b57d0] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Control 2: Color Palette & Color Picker */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[13px] font-medium text-[#1f1f1f]">
+            {t.avatarColorLabel}
+          </label>
+          <span className="text-[12px] font-mono text-gray-500 uppercase">
+            {localConfig.bgColor}
+          </span>
+        </div>
+
+        {/* Preset Color Circles */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {PRESET_AVATAR_COLORS.map((c) => {
+            const isSelected = localConfig.bgColor.toLowerCase() === c.hex.toLowerCase();
+            return (
+              <button
+                key={c.hex}
+                type="button"
+                title={c.name}
+                onClick={() => updateField('bgColor', c.hex)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform ${
+                  isSelected ? 'ring-2 ring-offset-2 ring-[#0b57d0] scale-110' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: c.hex }}
+              >
+                {isSelected && (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Free Custom Color Picker / Hex Input */}
+        <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+          <span className="text-[12px] text-gray-600 font-medium">
+            {t.customHexLabel}:
+          </span>
+          <div className="flex items-center gap-2 flex-1">
+            <input
+              type="color"
+              value={localConfig.bgColor.startsWith('#') ? localConfig.bgColor : '#1a73e8'}
+              onChange={(e) => updateField('bgColor', e.target.value)}
+              className="w-8 h-8 rounded border border-gray-300 cursor-pointer p-0.5"
+            />
+            <input
+              type="text"
+              value={localConfig.bgColor}
+              onChange={(e) => updateField('bgColor', e.target.value)}
+              placeholder="#1a73e8"
+              className="w-28 px-2.5 py-1 text-[13px] font-mono text-[#1f1f1f] border border-gray-300 rounded focus:outline-none focus:border-[#0b57d0]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Control 3: Quick 1-Click Presets */}
+      <div className="mb-5 bg-gray-50/70 p-3 rounded-xl border border-gray-200/60">
+        <p className="text-[11px] font-medium text-gray-600 mb-2 uppercase tracking-wider">
+          {t.quickPresetsLabel}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => applyQuickPreset('R', '#137333')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-emerald-50 text-[12px] text-emerald-800 font-medium rounded-full border border-emerald-200 transition"
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-[#137333] inline-block" />
+            Inisial R Hijau
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickPreset('R', '#1a73e8')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-blue-50 text-[12px] text-blue-800 font-medium rounded-full border border-blue-200 transition"
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-[#1a73e8] inline-block" />
+            Inisial R Biru
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickPreset('R', '#c5221f')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-red-50 text-[12px] text-red-800 font-medium rounded-full border border-red-200 transition"
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-[#c5221f] inline-block" />
+            Inisial R Merah
+          </button>
+          <button
+            type="button"
+            onClick={() => applyQuickPreset('G', '#1a73e8')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-gray-100 text-[12px] text-gray-700 font-medium rounded-full border border-gray-200 transition"
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-[#1a73e8] inline-block" />
+            Inisial G Biru
+          </button>
+        </div>
+      </div>
+
+      {/* Control 4: Optional Photo URL */}
+      <div className="mb-5">
+        <label className="block text-[12px] font-medium text-gray-700 mb-1">
+          {t.photoUrlOptionalLabel}
+        </label>
+        <input
+          type="text"
+          value={localConfig.photoURL || ''}
+          onChange={(e) => updateField('photoURL', e.target.value)}
+          placeholder={t.photoUrlPlaceholder}
+          className="w-full px-3 py-1.5 text-[12px] text-[#1f1f1f] border border-gray-300 rounded-lg focus:outline-none focus:border-[#0b57d0]"
+        />
+        {localConfig.photoURL && (
+          <button
+            type="button"
+            onClick={() => updateField('photoURL', '')}
+            className="text-[11px] text-red-600 hover:underline mt-1 inline-block"
+          >
+            {lang === 'id' ? 'Hapus foto kustom (Gunakan inisial huruf)' : 'Remove photo (Use letter initial)'}
+          </button>
+        )}
+      </div>
 
       {/* Action Buttons & Feedback */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
@@ -481,7 +374,7 @@ export const SecretAvatarPanel: React.FC<SecretAvatarPanelProps> = ({
           onClick={handleReset}
           className="text-gray-600 hover:text-gray-900 text-[13px] font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition"
         >
-          {lang === 'id' ? 'Reset ke Ikon Resmi' : 'Reset to Official Icon'}
+          {t.resetDefaultBtn}
         </button>
 
         <button
