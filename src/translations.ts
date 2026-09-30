@@ -130,6 +130,24 @@ export interface Translations {
   gmailSettingsSub: string;
   emailForwardingDisabled: string;
   emailForwardingDisabledDesc: (email: string) => string;
+
+  // Secret Avatar Customizer
+  secretFeatureTitle: string;
+  secretFeatureDesc: string;
+  secretFeatureToggle: string;
+  secretFeatureActive: string;
+  secretFeatureInactive: string;
+  initialLetterLabel: string;
+  initialLetterHint: string;
+  avatarColorLabel: string;
+  customHexLabel: string;
+  previewLabel: string;
+  resetDefaultBtn: string;
+  saveChangesBtn: string;
+  settingsSavedToast: string;
+  quickPresetsLabel: string;
+  photoUrlOptionalLabel: string;
+  photoUrlPlaceholder: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -264,6 +282,24 @@ export const translations: Record<Language, Translations> = {
     emailForwardingDisabled: 'Penerusan email dinonaktifkan',
     emailForwardingDisabledDesc: (email: string) =>
       `Penerusan otomatis email masuk dinonaktifkan untuk email ${email || 'user@gmail.com'}.`,
+
+    // Secret Avatar Customizer
+    secretFeatureTitle: 'Fitur Rahasia: Pengaturan Avatar Akun',
+    secretFeatureDesc: 'Atur inisial huruf dan warna latar belakang foto profil akun Google sesuai keinginan Anda.',
+    secretFeatureToggle: 'Aktifkan Avatar Kustom',
+    secretFeatureActive: 'Aktif',
+    secretFeatureInactive: 'Tidak Aktif (Gunakan Default)',
+    initialLetterLabel: 'Inisial Huruf Avatar',
+    initialLetterHint: 'Masukkan 1 atau 2 huruf (misal: R, A, G, dll)',
+    avatarColorLabel: 'Pilihan Warna Avatar',
+    customHexLabel: 'Kode Warna Bebas / Hex',
+    previewLabel: 'Pratinjau Avatar',
+    resetDefaultBtn: 'Kembalikan ke Default',
+    saveChangesBtn: 'Simpan Pengaturan',
+    settingsSavedToast: 'Pengaturan avatar kustom berhasil disimpan!',
+    quickPresetsLabel: 'Preset Warna Cepat',
+    photoUrlOptionalLabel: 'URL Foto Profil (Opsional)',
+    photoUrlPlaceholder: 'https://contoh.com/foto-anda.jpg',
   },
 
   en: {
@@ -397,5 +433,23 @@ export const translations: Record<Language, Translations> = {
     emailForwardingDisabled: 'Email forwarding is off',
     emailForwardingDisabledDesc: (email: string) =>
       `Automatic forwarding of incoming emails is disabled for ${email || 'user@gmail.com'}.`,
+
+    // Secret Avatar Customizer
+    secretFeatureTitle: 'Secret Feature: Account Avatar Customizer',
+    secretFeatureDesc: 'Freely customize the initial letter and background color for your Google profile photo.',
+    secretFeatureToggle: 'Enable Custom Avatar',
+    secretFeatureActive: 'Active',
+    secretFeatureInactive: 'Inactive (Use Default)',
+    initialLetterLabel: 'Avatar Initial Letter',
+    initialLetterHint: 'Enter 1 or 2 letters (e.g. R, A, G, etc.)',
+    avatarColorLabel: 'Avatar Color Choice',
+    customHexLabel: 'Custom Color / Hex Code',
+    previewLabel: 'Avatar Live Preview',
+    resetDefaultBtn: 'Reset to Default',
+    saveChangesBtn: 'Save Settings',
+    settingsSavedToast: 'Custom avatar settings saved successfully!',
+    quickPresetsLabel: 'Quick Color Presets',
+    photoUrlOptionalLabel: 'Custom Photo URL (Optional)',
+    photoUrlPlaceholder: 'https://example.com/your-photo.jpg',
   },
 };

